@@ -191,7 +191,7 @@ describe('ui-select tests', function() {
 
     expect(getMatchLabel(el)).toEqual('Adam');
   });
-  
+
   it('should correctly render initial state with track by feature', function() {
     var el = compileTemplate(
       '<ui-select ng-model="selection.selected"> \
@@ -1790,5 +1790,34 @@ describe('ui-select tests', function() {
         }
       }
     });
+  });
+
+  describe('with refresh on active', function(){
+    it('should not refresh untill is activate', function(){
+
+      var el = compileTemplate(
+        '<ui-select ng-model="selection.selected"> \
+          <ui-select-match> \
+          </ui-select-match> \
+          <ui-select-choices repeat="person in people | filter: $select.search" \
+            refresh="fetchFromServer($select.search)" refresh-on-active="true" refresh-delay="0"> \
+            <div ng-bind-html="person.name | highlight: $select.search"></div> \
+            <div ng-if="person.name==\'Wladimir\'"> \
+              <span class="only-once">I should appear only once</span>\
+            </div> \
+          </ui-select-choices> \
+        </ui-select>'
+      );
+
+      scope.fetchFromServer = function(){};
+      spyOn(scope, 'fetchFromServer');
+      $timeout.flush();
+      expect(scope.fetchFromServer.calls.any()).toEqual(false);
+
+      el.scope().$select.activate();
+      $timeout.flush();
+      expect(scope.fetchFromServer.calls.any()).toEqual(true);
+    });
+
   });
 });

@@ -34,6 +34,8 @@ uis.controller('uiSelectCtrl',
   ctrl.closeOnSelect = true; // Initialized inside uiSelect directive link function
   ctrl.clickTriggeredSelect = false;
   ctrl.$filter = $filter;
+  ctrl.refreshOnActive = undefined;
+  ctrl.refreshIsActive = undefined;
 
   ctrl.isEmpty = function() {
     return angular.isUndefined(ctrl.selected) || ctrl.selected === null || ctrl.selected === '';
@@ -64,6 +66,8 @@ uis.controller('uiSelectCtrl',
       ctrl.activeMatchIndex = -1;
 
       ctrl.activeIndex = ctrl.activeIndex >= ctrl.items.length ? 0 : ctrl.activeIndex;
+
+      ctrl.refreshIsActive = true;
 
       // ensure that the index is set to zero for tagging variants
       // that where first option is auto-selected
