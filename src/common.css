@@ -171,6 +171,19 @@ body > .ui-select-bootstrap.open {
   border-right: 1px solid #428bca;
 }
 
+.ui-select-bootstrap .ui-select-placeholder {
+    color: #999;
+    opacity: 1;
+}
+
+.ui-select-bootstrap .ui-select-placeholder {
+    color: #999;
+}
+
+.ui-select-bootstrap .ui-select-placeholder {
+    color: #999;
+}
+
 .ui-select-bootstrap .ui-select-choices-row>a {
     display: block;
     padding: 3px 20px;
