@@ -5,8 +5,8 @@
  * put as much logic in the controller (instead of the link functions) as possible so it can be easily tested.
  */
 uis.controller('uiSelectCtrl',
-  ['$scope', '$element', '$timeout', '$filter', 'uisRepeatParser', 'uiSelectMinErr', 'uiSelectConfig',
-  function($scope, $element, $timeout, $filter, RepeatParser, uiSelectMinErr, uiSelectConfig) {
+  ['$scope', '$element', '$timeout', '$filter', '$q', 'uisRepeatParser', 'uiSelectMinErr', 'uiSelectConfig',
+  function($scope, $element, $timeout, $filter, $q, RepeatParser, uiSelectMinErr, uiSelectConfig) {
 
   var ctrl = this;
 
@@ -284,24 +284,43 @@ uis.controller('uiSelectCtrl',
           }
         }
 
-        $scope.$broadcast('uis:select', item);
+        var completeSelection = function() {
+          $scope.$broadcast('uis:select', item);
+
+          $timeout(function(){
+            ctrl.onSelectCallback($scope, callbackContext);
+          });
+
+          if (ctrl.closeOnSelect) {
+            ctrl.close(skipFocusser);
+          }
+          if ($event && $event.type === 'click') {
+            ctrl.clickTriggeredSelect = true;
+          }
+        };
 
         var locals = {};
         locals[ctrl.parserResult.itemName] = item;
 
-        $timeout(function(){
-          ctrl.onSelectCallback($scope, {
-            $item: item,
-            $model: ctrl.parserResult.modelMapper($scope, locals)
-          });
-        });
+        var callbackContext = {
+          $item: item,
+          $model: ctrl.parserResult.modelMapper($scope, locals)
+        };
 
-        if (ctrl.closeOnSelect) {
-          ctrl.close(skipFocusser);
+        var onBeforeSelectResult = ctrl.onBeforeSelectCallback($scope, callbackContext);
+
+        if (angular.isDefined(onBeforeSelectResult)) {
+          if (!onBeforeSelectResult) {
+            return;  // abort the selection in case of deliberate falsey result
+          } else if (angular.isFunction(onBeforeSelectResult.then)) {
+            onBeforeSelectResult.then(completeSelection);
+          } else {
+            completeSelection();
+          }
+        } else {
+          completeSelection();
         }
-        if ($event && $event.type === 'click') {
-          ctrl.clickTriggeredSelect = true;
-        }
+
       }
     }
   };

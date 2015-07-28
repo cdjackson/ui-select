@@ -41,6 +41,7 @@ uis.directive('uiSelect',
           }
         }();
 
+        $select.onBeforeSelectCallback = $parse(attrs.onBeforeSelect);
         $select.onSelectCallback = $parse(attrs.onSelect);
         $select.onRemoveCallback = $parse(attrs.onRemove);
         

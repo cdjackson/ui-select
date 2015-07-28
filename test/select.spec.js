@@ -959,6 +959,196 @@ describe('ui-select tests', function() {
 
   });
 
+  it('should invoke before-select callback before select callback synchronously', function () {
+
+    var order = [];
+    scope.onBeforeSelectFn = function ($item, $model, $label) {
+      order.push('onBeforeSelectFn');
+    };
+    scope.onSelectFn = function ($item, $model, $label) {
+      order.push('onSelectFn');
+    };
+    var el = compileTemplate(
+      '<ui-select on-before-select="onBeforeSelectFn($item, $model)" on-select="onSelectFn($item, $model)" ng-model="selection.selected"> \
+        <ui-select-match placeholder="Pick one...">{{$select.selected.name}}</ui-select-match> \
+        <ui-select-choices repeat="person.name as person in people | filter: $select.search"> \
+          <div ng-bind-html="person.name | highlight: $select.search"></div> \
+          <div ng-bind-html="person.email | highlight: $select.search"></div> \
+        </ui-select-choices> \
+      </ui-select>'
+    );
+
+    clickItem(el, 'Samantha');
+    $timeout.flush();
+
+    expect(order[0]).toEqual('onBeforeSelectFn');
+    expect(order[1]).toEqual('onSelectFn');
+
+  });
+
+  it('should invoke before-select callback before select callback when promised', inject(function ($q) {
+
+    var order = [];
+    scope.onBeforeSelectFn = function ($item, $model, $label) {
+      var deferred = $q.defer();
+      $timeout(function () {
+        order.push('onBeforeSelectFn');
+        deferred.resolve(order);
+      });
+      return deferred.promise;
+    };
+    scope.onSelectFn = function ($item, $model, $label) {
+      order.push('onSelectFn');
+    };
+    var el = compileTemplate(
+      '<ui-select on-before-select="onBeforeSelectFn($item, $model)" on-select="onSelectFn($item, $model)" ng-model="selection.selected"> \
+        <ui-select-match placeholder="Pick one...">{{$select.selected.name}}</ui-select-match> \
+        <ui-select-choices repeat="person.name as person in people | filter: $select.search"> \
+          <div ng-bind-html="person.name | highlight: $select.search"></div> \
+          <div ng-bind-html="person.email | highlight: $select.search"></div> \
+        </ui-select-choices> \
+      </ui-select>'
+    );
+
+    clickItem(el, 'Samantha');
+    $timeout.flush();
+
+    expect(order[0]).toEqual('onBeforeSelectFn');
+    expect(order[1]).toEqual('onSelectFn');
+
+  }));
+
+  it('should complete on-select if before-select callback promise is resolved', inject(function ($q) {
+
+    scope.onBeforeSelectFn = function ($item, $model, $label) {
+      var deferred = $q.defer();
+      $timeout(function () {
+        deferred.resolve();
+      });
+      return deferred.promise;
+    };
+    scope.onSelectFn = function ($item, $model, $label) {
+      scope.$item = $item;
+      scope.$model = $model;
+    };
+    var el = compileTemplate(
+      '<ui-select on-before-select="onBeforeSelectFn($item, $model)" on-select="onSelectFn($item, $model)" ng-model="selection.selected"> \
+        <ui-select-match placeholder="Pick one...">{{$select.selected.name}}</ui-select-match> \
+        <ui-select-choices repeat="person.name as person in people | filter: $select.search"> \
+          <div ng-bind-html="person.name | highlight: $select.search"></div> \
+          <div ng-bind-html="person.email | highlight: $select.search"></div> \
+        </ui-select-choices> \
+      </ui-select>'
+    );
+
+    expect(scope.$item).toBeFalsy();
+    expect(scope.$model).toBeFalsy();
+
+    clickItem(el, 'Samantha');
+    $timeout.flush();
+
+    expect(scope.selection.selected).toBe('Samantha');
+
+    expect(scope.$item).toEqual(scope.people[5]);
+    expect(scope.$model).toEqual('Samantha');
+
+  }));
+
+  it('should abort selection if before-select callback returns falsy', function () {
+
+    scope.onBeforeSelectFn = function ($item, $model, $label) {
+      return false;
+    };
+    scope.onSelectFn = function ($item, $model, $label) {
+      scope.$item = $item;
+      scope.$model = $model;
+    };
+    var el = compileTemplate(
+      '<ui-select on-before-select="onBeforeSelectFn($item, $model)" on-select="onSelectFn($item, $model)" ng-model="selection.selected"> \
+        <ui-select-match placeholder="Pick one...">{{$select.selected.name}}</ui-select-match> \
+        <ui-select-choices repeat="person.name as person in people | filter: $select.search"> \
+          <div ng-bind-html="person.name | highlight: $select.search"></div> \
+          <div ng-bind-html="person.email | highlight: $select.search"></div> \
+        </ui-select-choices> \
+      </ui-select>'
+    );
+
+    expect(scope.$item).toBeFalsy();
+    expect(scope.$model).toBeFalsy();
+
+    clickItem(el, 'Samantha');
+    $timeout.flush();
+
+    expect(scope.$item).toBeFalsy();
+    expect(scope.$model).toBeFalsy();
+
+  });
+
+  it('should abort selection if before-select callback rejects promise', inject(function ($q) {
+
+    scope.onBeforeSelectFn = function ($item, $model, $label) {
+      var deferred = $q.defer();
+      $timeout(function () {
+        deferred.reject();
+      });
+      return deferred.promise;
+    };
+    scope.onSelectFn = function ($item, $model, $label) {
+      scope.$item = $item;
+      scope.$model = $model;
+    };
+    var el = compileTemplate(
+      '<ui-select on-before-select="onBeforeSelectFn($item, $model)" on-select="onSelectFn($item, $model)" ng-model="selection.selected"> \
+        <ui-select-match placeholder="Pick one...">{{$select.selected.name}}</ui-select-match> \
+        <ui-select-choices repeat="person.name as person in people | filter: $select.search"> \
+          <div ng-bind-html="person.name | highlight: $select.search"></div> \
+          <div ng-bind-html="person.email | highlight: $select.search"></div> \
+        </ui-select-choices> \
+      </ui-select>'
+    );
+
+    expect(scope.$item).toBeFalsy();
+    expect(scope.$model).toBeFalsy();
+
+    clickItem(el, 'Samantha');
+    $timeout.flush();
+
+    expect(scope.$item).toBeFalsy();
+    expect(scope.$model).toBeFalsy();
+
+  }));
+
+  it('should keep reference to current selection and incoming selection within before-select callback', function () {
+
+    var currentSelection, incomingSelection;
+    scope.onBeforeSelectFn = function ($item, $model, $label) {
+      incomingSelection = $item;
+      currentSelection = scope.selection.selected;
+    };
+    var el = compileTemplate(
+      '<ui-select on-before-select="onBeforeSelectFn($item, $model)" ng-model="selection.selected"> \
+        <ui-select-match placeholder="Pick one...">{{$select.selected.name}}</ui-select-match> \
+        <ui-select-choices repeat="person.name as person in people | filter: $select.search"> \
+          <div ng-bind-html="person.name | highlight: $select.search"></div> \
+          <div ng-bind-html="person.email | highlight: $select.search"></div> \
+        </ui-select-choices> \
+      </ui-select>'
+    );
+
+    clickItem(el, 'Samantha');
+    $timeout.flush();
+
+    expect(currentSelection).toBeFalsy();
+    expect(incomingSelection.name).toBe('Samantha');
+
+    clickItem(el, 'Adam');
+    $timeout.flush();
+
+    expect(currentSelection).toBe('Samantha');
+    expect(incomingSelection.name).toBe('Adam');
+
+  });
+
   it('should invoke hover callback', function(){
 
     var highlighted;
