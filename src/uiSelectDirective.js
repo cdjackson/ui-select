@@ -62,15 +62,11 @@ uis.directive('uiSelect',
           });
         }
 
-        scope.$watch('searchEnabled', function() {
-            var searchEnabled = scope.$eval(attrs.searchEnabled);
-            $select.searchEnabled = searchEnabled !== undefined ? searchEnabled : uiSelectConfig.searchEnabled;
-        });
+        var searchEnabled = scope.$eval(attrs.searchEnabled);
+        $select.searchEnabled = searchEnabled !== undefined ? searchEnabled : uiSelectConfig.searchEnabled;
 
-        scope.$watch('sortable', function() {
-            var sortable = scope.$eval(attrs.sortable);
-            $select.sortable = sortable !== undefined ? sortable : uiSelectConfig.sortable;
-        });
+        var sortable = scope.$eval(attrs.sortable);
+        $select.sortable = sortable !== undefined ? sortable : uiSelectConfig.sortable;
 
         attrs.$observe('disabled', function() {
           // No need to use $eval() (thanks to ng-disabled) since we already get a boolean instead of a string
@@ -83,40 +79,34 @@ uis.directive('uiSelect',
           $select.resetSearchInput = resetSearchInput !== undefined ? resetSearchInput : true;
         });
 
-        attrs.$observe('tagging', function() {
-          if(attrs.tagging !== undefined)
-          {
-            // $eval() is needed otherwise we get a string instead of a boolean
-            var taggingEval = scope.$eval(attrs.tagging);
+        if(attrs.tagging !== undefined)
+        {
+          // $eval() is needed otherwise we get a string instead of a boolean
+          var taggingEval = scope.$eval(attrs.tagging);
             $select.tagging = {isActivated: true, fct: taggingEval !== true ? taggingEval : undefined};
+        }
+        else
+        {
+          $select.tagging = {isActivated: false, fct: undefined};
+        }
+
+        if(attrs.tagging !== undefined )
+        {
+          // check eval for FALSE, in this case, we disable the labels
+          // associated with tagging
+          if ( attrs.taggingLabel === 'false' ) {
+            $select.taggingLabel = false;
           }
           else
           {
-            $select.tagging = {isActivated: false, fct: undefined};
+            $select.taggingLabel = attrs.taggingLabel !== undefined ? attrs.taggingLabel : '(new)';
           }
-        });
+        }
 
-        attrs.$observe('taggingLabel', function() {
-          if(attrs.tagging !== undefined )
-          {
-            // check eval for FALSE, in this case, we disable the labels
-            // associated with tagging
-            if ( attrs.taggingLabel === 'false' ) {
-              $select.taggingLabel = false;
-            }
-            else
-            {
-              $select.taggingLabel = attrs.taggingLabel !== undefined ? attrs.taggingLabel : '(new)';
-            }
-          }
-        });
-
-        attrs.$observe('taggingTokens', function() {
-          if (attrs.tagging !== undefined) {
-            var tokens = attrs.taggingTokens !== undefined ? attrs.taggingTokens.split('|') : [',','ENTER'];
-            $select.taggingTokens = {isActivated: true, tokens: tokens };
-          }
-        });
+        if (attrs.tagging !== undefined) {
+          var tokens = attrs.taggingTokens !== undefined ? attrs.taggingTokens.split('|') : [',','ENTER'];
+          $select.taggingTokens = {isActivated: true, tokens: tokens };
+        }
 
         //Automatically gets focus when loaded
         if (angular.isDefined(attrs.autofocus)){
