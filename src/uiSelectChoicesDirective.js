@@ -56,11 +56,9 @@ uis.directive('uiSelectChoices',
           $select.refresh(attrs.refresh);
         });
 
-        attrs.$observe('refreshDelay', function() {
-          // $eval() is needed otherwise we get a string instead of a number
-          var refreshDelay = scope.$eval(attrs.refreshDelay);
-          $select.refreshDelay = refreshDelay !== undefined ? refreshDelay : uiSelectConfig.refreshDelay;
-        });
+        // $eval() is needed otherwise we get a string instead of a number
+        var refreshDelay = scope.$eval(attrs.refreshDelay);
+        $select.refreshDelay = refreshDelay !== undefined ? refreshDelay : uiSelectConfig.refreshDelay;
       };
     }
   };
