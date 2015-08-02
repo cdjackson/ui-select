@@ -38,6 +38,8 @@ uis.controller('uiSelectCtrl',
   ctrl.lockChoiceExpression = undefined; // Initialized inside uiSelectMatch directive link function
   ctrl.clickTriggeredSelect = false;
   ctrl.$filter = $filter;
+  ctrl.refreshOnActive = undefined;
+  ctrl.refreshIsActive = undefined;
 
   ctrl.searchInput = $element.querySelectorAll('input.ui-select-search');
   if (ctrl.searchInput.length !== 1) {
@@ -84,6 +86,8 @@ uis.controller('uiSelectCtrl',
       }
 
       ctrl.activeIndex = ctrl.activeIndex >= ctrl.items.length ? 0 : ctrl.activeIndex;
+
+      ctrl.refreshIsActive = true;
 
       // ensure that the index is set to zero for tagging variants
       // that where first option is auto-selected
