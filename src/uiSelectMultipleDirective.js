@@ -175,15 +175,14 @@ uis.directive('uiSelectMultiple', ['uiSelectMinErr','$timeout', function(uiSelec
         var key = e.which;
         scope.$apply(function() {
           var processed = false;
-          // var tagged = false; //Checkme
           if(KEY.isHorizontalMovement(key)){
             processed = _handleMatchSelection(key);
           }
           if (processed  && key != KEY.TAB) {
             //TODO Check si el tab selecciona aun correctamente
             //Crear test
-            e.preventDefault();
-            e.stopPropagation();
+//            e.preventDefault();
+  //          e.stopPropagation();
           }
         });
       });
@@ -250,147 +249,6 @@ uis.directive('uiSelectMultiple', ['uiSelectMinErr','$timeout', function(uiSelec
         else $selectMultiple.activeMatchIndex = Math.min(last,Math.max(first,newIndex));
 
         return true;
-      }
-
-      $select.searchInput.on('keyup', function(e) {
-
-        if ( ! KEY.isVerticalMovement(e.which) ) {
-          scope.$evalAsync( function () {
-            $select.activeIndex = $select.taggingLabel === false ? -1 : 0;
-          });
-        }
-        // Push a "create new" item into array if there is a search string
-        if ( $select.tagging.isActivated && $select.search.length > 0 ) {
-
-          // return early with these keys
-          if (e.which === KEY.TAB || KEY.isControl(e) || KEY.isFunctionKey(e) || e.which === KEY.ESC || KEY.isVerticalMovement(e.which) ) {
-            return;
-          }
-          // always reset the activeIndex to the first item when tagging
-          $select.activeIndex = $select.taggingLabel === false ? -1 : 0;
-          // taggingLabel === false bypasses all of this
-          if ($select.taggingLabel === false) return;
-
-          var items = angular.copy( $select.items );
-          var stashArr = angular.copy( $select.items );
-          var newItem;
-          var item;
-          var hasTag = false;
-          var dupeIndex = -1;
-          var tagItems;
-          var tagItem;
-
-          // case for object tagging via transform `$select.tagging.fct` function
-          if ( $select.tagging.fct !== undefined) {
-            tagItems = $select.$filter('filter')(items,{'isTag': true});
-            if ( tagItems.length > 0 ) {
-              tagItem = tagItems[0];
-            }
-            // remove the first element, if it has the `isTag` prop we generate a new one with each keyup, shaving the previous
-            if ( items.length > 0 && tagItem ) {
-              hasTag = true;
-              items = items.slice(1,items.length);
-              stashArr = stashArr.slice(1,stashArr.length);
-            }
-            newItem = $select.tagging.fct($select.search);
-            newItem.isTag = true;
-            // verify the the tag doesn't match the value of an existing item
-            if ( stashArr.filter( function (origItem) { return angular.equals( origItem, $select.tagging.fct($select.search) ); } ).length > 0 ) {
-              return;
-            }
-            newItem.isTag = true;
-          // handle newItem string and stripping dupes in tagging string context
-          } else {
-            // find any tagging items already in the $select.items array and store them
-            tagItems = $select.$filter('filter')(items,function (item) {
-              return item.match($select.taggingLabel);
-            });
-            if ( tagItems.length > 0 ) {
-              tagItem = tagItems[0];
-            }
-            item = items[0];
-            // remove existing tag item if found (should only ever be one tag item)
-            if ( item !== undefined && items.length > 0 && tagItem ) {
-              hasTag = true;
-              items = items.slice(1,items.length);
-              stashArr = stashArr.slice(1,stashArr.length);
-            }
-            newItem = $select.search+' '+$select.taggingLabel;
-            if ( _findApproxDupe($select.selected, $select.search) > -1 ) {
-              return;
-            }
-            // verify the the tag doesn't match the value of an existing item from
-            // the searched data set or the items already selected
-            if ( _findCaseInsensitiveDupe(stashArr.concat($select.selected)) ) {
-              // if there is a tag from prev iteration, strip it / queue the change
-              // and return early
-              if ( hasTag ) {
-                items = stashArr;
-                scope.$evalAsync( function () {
-                  $select.activeIndex = 0;
-                  $select.items = items;
-                });
-              }
-              return;
-            }
-            if ( _findCaseInsensitiveDupe(stashArr) ) {
-              // if there is a tag from prev iteration, strip it
-              if ( hasTag ) {
-                $select.items = stashArr.slice(1,stashArr.length);
-              }
-              return;
-            }
-          }
-          if ( hasTag ) dupeIndex = _findApproxDupe($select.selected, newItem);
-          // dupe found, shave the first item
-          if ( dupeIndex > -1 ) {
-            items = items.slice(dupeIndex+1,items.length-1);
-          } else {
-            items = [];
-            items.push(newItem);
-            items = items.concat(stashArr);
-          }
-          scope.$evalAsync( function () {
-            $select.activeIndex = 0;
-            $select.items = items;
-          });
-        }
-      });
-      function _findCaseInsensitiveDupe(arr) {
-        if ( arr === undefined || $select.search === undefined ) {
-          return false;
-        }
-        var hasDupe = arr.filter( function (origItem) {
-          if ( $select.search.toUpperCase() === undefined || origItem === undefined ) {
-            return false;
-          }
-          return origItem.toUpperCase() === $select.search.toUpperCase();
-        }).length > 0;
-
-        return hasDupe;
-      }
-      function _findApproxDupe(haystack, needle) {
-        var dupeIndex = -1;
-        if(angular.isArray(haystack)) {
-          var tempArr = angular.copy(haystack);
-          for (var i = 0; i <tempArr.length; i++) {
-            // handle the simple string version of tagging
-            if ( $select.tagging.fct === undefined ) {
-              // search the array for the match
-              if ( tempArr[i]+' '+$select.taggingLabel === needle ) {
-              dupeIndex = i;
-              }
-            // handle the object tagging implementation
-            } else {
-              var mockObj = tempArr[i];
-              mockObj.isTag = true;
-              if ( angular.equals(mockObj, needle) ) {
-              dupeIndex = i;
-              }
-            }
-          }
-        }
-        return dupeIndex;
       }
 
       $select.searchInput.on('blur', function() {

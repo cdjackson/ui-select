@@ -1,7 +1,7 @@
 /*!
  * ui-select
  * http://github.com/angular-ui/ui-select
- * Version: 0.12.1 - 2015-07-28T03:50:59.080Z
+ * Version: 0.12.1 - 2015-08-02T20:56:31.552Z
  * License: MIT
  */
 
@@ -213,6 +213,19 @@ body > .ui-select-bootstrap.open {
   height: 100%;
   margin-left: 2px;
   border-right: 1px solid #428bca;
+}
+
+.ui-select-bootstrap .ui-select-placeholder {
+    color: #999;
+    opacity: 1;
+}
+
+.ui-select-bootstrap .ui-select-placeholder {
+    color: #999;
+}
+
+.ui-select-bootstrap .ui-select-placeholder {
+    color: #999;
 }
 
 .ui-select-bootstrap .ui-select-choices-row>a {
