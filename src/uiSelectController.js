@@ -15,7 +15,6 @@ uis.controller('uiSelectCtrl',
             ctrl.placeholder = uiSelectConfig.placeholder;
             ctrl.searchEnabled = uiSelectConfig.searchEnabled;
             ctrl.sortable = uiSelectConfig.sortable;
-            ctrl.refreshDelay = uiSelectConfig.refreshDelay;
 
             ctrl.removeSelected = false; //If selected item(s) should be removed from dropdown list
             ctrl.closeOnSelect = true; //Initialized inside uiSelect directive link function
@@ -36,8 +35,6 @@ uis.controller('uiSelectCtrl',
             ctrl.lockChoiceExpression = undefined; // Initialized inside uiSelectMatch directive link function
             ctrl.clickTriggeredSelect = false;
             ctrl.$filter = $filter;
-            ctrl.refreshOnActive = undefined;
-            ctrl.refreshIsActive = undefined;
 
             ctrl.searchInput = $element.querySelectorAll('input.ui-select-search');
             if (ctrl.searchInput.length !== 1) {
@@ -45,6 +42,10 @@ uis.controller('uiSelectCtrl',
                     ctrl.searchInput.length);
             }
 
+            /**
+             * Returns true if the selection is empty
+             * @returns {boolean|*}
+             */
             ctrl.isEmpty = function () {
                 return angular.isUndefined(ctrl.selected) || ctrl.selected === null || ctrl.selected === '';
             };
@@ -60,6 +61,12 @@ uis.controller('uiSelectCtrl',
                 }
             }
 
+            ctrl.findGroupByName = function (name) {
+                return ctrl.groups && ctrl.groups.filter(function (group) {
+                        return group.name === name;
+                    })[0];
+            };
+
             function _groupsFilter(groups, groupNames) {
                 var i, j, result = [];
                 for (i = 0; i < groupNames.length; i++) {
@@ -72,10 +79,15 @@ uis.controller('uiSelectCtrl',
                 return result;
             }
 
-            // When the user clicks on ui-select, displays the dropdown list
+            /**
+             * Activates the control.
+             * When the user clicks on ui-select, displays the dropdown list
+             */
             ctrl.activate = function (initSearchValue, avoidReset) {
                 if (!ctrl.disabled && !ctrl.open) {
-                    if (!avoidReset) _resetSearchInput();
+                    if (!avoidReset) {
+                        _resetSearchInput();
+                    }
 
                     $scope.$broadcast('uis:activate');
 
@@ -85,7 +97,6 @@ uis.controller('uiSelectCtrl',
                     }
 
                     ctrl.activeIndex = ctrl.activeIndex >= ctrl.items.length ? 0 : ctrl.activeIndex;
-                    ctrl.refreshIsActive = true;
 
                     // Give it time to appear before focus
                     $timeout(function () {
@@ -97,12 +108,6 @@ uis.controller('uiSelectCtrl',
                     // Close the selection if we don't have search enabled, and we click on the select again
                     ctrl.close();
                 }
-            };
-
-            ctrl.findGroupByName = function (name) {
-                return ctrl.groups && ctrl.groups.filter(function (group) {
-                        return group.name === name;
-                    })[0];
             };
 
             ctrl.parseRepeatAttr = function (repeatAttr, groupByExp, groupFilterExp) {
@@ -137,6 +142,7 @@ uis.controller('uiSelectCtrl',
                     ctrl.items = items;
                 }
 
+                // Set the function to use when displaying items - either groups or single
                 ctrl.setItemsFn = groupByExp ? updateGroups : setPlainItems;
 
                 ctrl.parserResult = RepeatParser.parse(repeatAttr);
@@ -147,7 +153,7 @@ uis.controller('uiSelectCtrl',
                 ctrl.refreshItems = function (data) {
                     data = data || ctrl.parserResult.source($scope);
                     var selectedItems = ctrl.selected;
-                    //TODO should implement for single mode removeSelected
+                    // TODO should implement for single mode removeSelected
                     if (ctrl.isEmpty() || (angular.isArray(selectedItems) && !selectedItems.length) ||
                         !ctrl.removeSelected) {
                         ctrl.setItemsFn(data);
@@ -179,35 +185,17 @@ uis.controller('uiSelectCtrl',
                         }
                     }
                 });
-
-            };
-
-            var _refreshDelayPromise;
-
-            /**
-             * Typeahead mode: lets the user refresh the collection using his own function.
-             *
-             * See Expose $select.search for external / remote filtering https://github.com/angular-ui/ui-select/pull/31
-             */
-            ctrl.refresh = function (refreshAttr) {
-                if (refreshAttr !== undefined) {
-
-                    // Debounce
-                    // See https://github.com/angular-ui/bootstrap/blob/0.10.0/src/typeahead/typeahead.js#L155
-                    // FYI AngularStrap typeahead does not have debouncing: https://github.com/mgcrea/angular-strap/blob/v2.0.0-rc.4/src/typeahead/typeahead.js#L177
-                    if (_refreshDelayPromise) {
-                        $timeout.cancel(_refreshDelayPromise);
-                    }
-                    _refreshDelayPromise = $timeout(function () {
-                        $scope.$eval(refreshAttr);
-                    }, ctrl.refreshDelay);
-                }
             };
 
             ctrl.setActiveItem = function (item) {
                 ctrl.activeIndex = ctrl.items.indexOf(item);
             };
 
+            /**
+             * Checks if the item is active
+             * @param itemScope the item
+             * @returns {boolean} true if active
+             */
             ctrl.isActive = function (itemScope) {
                 if (!ctrl.open) {
                     return false;
@@ -224,11 +212,14 @@ uis.controller('uiSelectCtrl',
 
             /**
              * Checks if the item is disabled
-             * @return boolean true if the item is disabled
+             * @param itemScope the item
+             * @return {boolean} true if the item is disabled
              */
             ctrl.isDisabled = function (itemScope) {
 
-                if (!ctrl.open) return false;
+                if (!ctrl.open) {
+                    return false;
+                }
 
                 var itemIndex = ctrl.items.indexOf(itemScope[ctrl.itemProperty]);
                 var isDisabled = false;
@@ -245,75 +236,81 @@ uis.controller('uiSelectCtrl',
 
 
             /**
+             * Selects an item
+             *
              * Called when the user selects an item with ENTER or clicks the dropdown
              */
             ctrl.select = function (item, skipFocusser, $event) {
-                if (item === undefined || !item._uiSelectChoiceDisabled) {
+                if (item !== undefined && item._uiSelectChoiceDisabled) {
+                    return;
+                }
 
-                    if (!ctrl.items && !ctrl.search){
-                        return;
+                // If no items in the list, and no search, then return
+                if (!ctrl.items && !ctrl.search) {
+                    return;
+                }
+
+                // Create the data used to pass to the callbacks
+                var locals = {};
+                locals[ctrl.parserResult.itemName] = item;
+                var callbackContext = {
+                    $item: item,
+                    $model: ctrl.parserResult.modelMapper($scope, locals)
+                };
+
+                // Local method called when we complete the select
+                // eg. called after the onselect callback
+                var completeSelection = function () {
+                    $scope.$broadcast('uis:select', item);
+
+                    $timeout(function () {
+                        ctrl.onSelectCallback($scope, callbackContext);
+                    });
+
+                    if (ctrl.closeOnSelect) {
+                        ctrl.close(skipFocusser);
                     }
-
-                    if (!item || !item._uiSelectChoiceDisabled) {
-
-                        var completeSelection = function () {
-                            $scope.$broadcast('uis:select', item);
-
-                            $timeout(function () {
-                                ctrl.onSelectCallback($scope, callbackContext);
-                            });
-
-                            if (ctrl.closeOnSelect) {
-                                ctrl.close(skipFocusser);
-                            }
-                            if ($event && $event.type === 'click') {
-                                ctrl.clickTriggeredSelect = true;
-                            }
-                        };
-
-                        var locals = {};
-                        locals[ctrl.parserResult.itemName] = item;
-
-                        var callbackContext = {
-                            $item: item,
-                            $model: ctrl.parserResult.modelMapper($scope, locals)
-                        };
-
-                        // Call the onBeforeSelect callback
-                        // Allowable responses are -:
-                        // falsy: Abort the selection
-                        // promise: Wait for response
-                        // true: Complete selection
-                        // object: Add the returned object
-                        var onBeforeSelectResult = ctrl.onBeforeSelectCallback($scope, callbackContext);
-                        if (angular.isDefined(onBeforeSelectResult)) {
-                            if (!onBeforeSelectResult) {
-                                return;  // abort the selection in case of deliberate falsey result
-                            } else if (angular.isFunction(onBeforeSelectResult.then)) {
-                                onBeforeSelectResult.then(function (result) {
-                                    if (!result) {
-                                        return;
-                                    }
-                                    completeSelection(result);
-                                });
-                            } else if (onBeforeSelectResult === true) {
-                                completeSelection(item);
-                            } else {
-                                completeSelection(onBeforeSelectResult);
-                            }
-                        } else {
-                            completeSelection(item);
-                        }
+                    if ($event && $event.type === 'click') {
+                        ctrl.clickTriggeredSelect = true;
                     }
+                };
+
+                // Call the onBeforeSelect callback
+                // Allowable responses are -:
+                // falsy: Abort the selection
+                // promise: Wait for response
+                // true: Complete selection
+                // object: Add the returned object
+                var onBeforeSelectResult = ctrl.onBeforeSelectCallback($scope, callbackContext);
+                if (angular.isDefined(onBeforeSelectResult)) {
+                    if (angular.isFunction(onBeforeSelectResult.then)) {
+                        // Promise returned - wait for it to complete before completing the selection
+                        onBeforeSelectResult.then(function (result) {
+                            if (!result) {
+                                return;
+                            }
+                            completeSelection(result);
+                        });
+                    } else if (onBeforeSelectResult === true) {
+                        completeSelection(item);
+                    } else if (onBeforeSelectResult) {
+                        completeSelection(onBeforeSelectResult);
+                    }
+                } else {
+                    completeSelection(item);
                 }
             };
 
-            // Closes the dropdown
+            /**
+             * Close the dropdown
+             */
             ctrl.close = function (skipFocusser) {
                 if (!ctrl.open) {
                     return;
                 }
-                if (ctrl.ngModel && ctrl.ngModel.$setTouched) ctrl.ngModel.$setTouched();
+                if (ctrl.ngModel && ctrl.ngModel.$setTouched) {
+                    ctrl.ngModel.$setTouched();
+                }
                 _resetSearchInput();
                 ctrl.open = false;
                 if (!ctrl.searchEnabled) {
@@ -323,12 +320,19 @@ uis.controller('uiSelectCtrl',
                 $scope.$broadcast('uis:close', skipFocusser);
             };
 
+            /**
+             *  Set focus on the control
+             */
             ctrl.setFocus = function () {
                 if (!ctrl.focus) {
                     ctrl.focusInput[0].focus();
                 }
             };
 
+            /**
+             * Clears the selection
+             * @param $event
+             */
             ctrl.clear = function ($event) {
                 ctrl.select(undefined);
                 $event.stopPropagation();
@@ -337,7 +341,9 @@ uis.controller('uiSelectCtrl',
                 }, 0, false);
             };
 
-            // Toggle dropdown
+            /**
+             * Toggle the dropdown open and closed
+             */
             ctrl.toggle = function (e) {
                 if (ctrl.open) {
                     ctrl.close();
@@ -361,7 +367,6 @@ uis.controller('uiSelectCtrl',
 
             var sizeWatch = null;
             ctrl.sizeSearchInput = function () {
-
                 var input = ctrl.searchInput[0],
                     container = ctrl.searchInput.parent().parent()[0],
                     calculateContainerWidth = function () {
@@ -414,7 +419,9 @@ uis.controller('uiSelectCtrl',
                         }
                         break;
                     case KEY.TAB:
-                        if (!ctrl.multiple || ctrl.open) ctrl.select(ctrl.items[ctrl.activeIndex], true);
+                        if (!ctrl.multiple || ctrl.open) {
+                            ctrl.select(ctrl.items[ctrl.activeIndex], true);
+                        }
                         break;
                     case KEY.ENTER:
                         if (ctrl.open) {
@@ -458,24 +465,6 @@ uis.controller('uiSelectCtrl',
                 }
             });
 
-            // If tagging try to split by tokens and add items
-      /*      ctrl.searchInput.on('paste', function (e) {
-                var data = e.originalEvent.clipboardData.getData('text/plain');
-                if (data && data.length > 0 && ctrl.taggingTokens.isActivated && ctrl.tagging.fct) {
-                    var items = data.split(ctrl.taggingTokens.tokens[0]); // split by first token only
-                    if (items && items.length > 0) {
-                        angular.forEach(items, function (item) {
-                            var newItem = ctrl.tagging.fct(item);
-                            if (newItem) {
-                                ctrl.select(newItem, true);
-                            }
-                        });
-                        e.preventDefault();
-                        e.stopPropagation();
-                    }
-                }
-            });*/
-
             ctrl.searchInput.on('keyup', function (e) {
                 // return early with these keys
                 if (e.which === KEY.TAB || KEY.isControl(e) || KEY.isFunctionKey(e) || e.which === KEY.ESC ||
@@ -488,7 +477,6 @@ uis.controller('uiSelectCtrl',
                 }
                 ctrl.onKeypressCallback($scope, {event: e});
             });
-
 
             // See https://github.com/ivaynberg/select2/blob/3.4.6/select2.js#L1431
             function _ensureHighlightVisible() {
@@ -510,10 +498,13 @@ uis.controller('uiSelectCtrl',
                 if (posY > height) {
                     container[0].scrollTop += posY - height;
                 } else if (posY < highlighted.clientHeight) {
-                    if (ctrl.isGrouped && ctrl.activeIndex === 0)
-                        container[0].scrollTop = 0; //To make group header visible when going all the way up
-                    else
+                    if (ctrl.isGrouped && ctrl.activeIndex === 0) {
+                        //To make group header visible when going all the way up
+                        container[0].scrollTop = 0;
+                    }
+                    else {
                         container[0].scrollTop -= highlighted.clientHeight - posY;
+                    }
                 }
             }
 

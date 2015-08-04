@@ -41,9 +41,10 @@ uis.directive('uiSelect',
                             }
                         }();
 
-                        $select.onBeforeSelectCallback = $parse(attrs.onBeforeSelect);
                         $select.onSelectCallback = $parse(attrs.onSelect);
+                        $select.onBeforeSelectCallback = $parse(attrs.onBeforeSelect);
                         $select.onRemoveCallback = $parse(attrs.onRemove);
+                        $select.onBeforeRemoveCallback = $parse(attrs.onBeforeRemove);
                         $select.onKeypressCallback = $parse(attrs.onKeypress);
 
                         //Limit the number of selections allowed
@@ -75,11 +76,6 @@ uis.directive('uiSelect',
                             $select.disabled = attrs.disabled !== undefined ? attrs.disabled : false;
                         });
 
-                        attrs.$observe('resetSearchInput', function () {
-                            // $eval() is needed otherwise we get a string instead of a boolean
-                            var resetSearchInput = scope.$eval(attrs.resetSearchInput);
-                            $select.resetSearchInput = resetSearchInput !== undefined ? resetSearchInput : true;
-                        });
 
                         //Automatically gets focus when loaded
                         if (angular.isDefined(attrs.autofocus)) {
@@ -231,6 +227,7 @@ uis.directive('uiSelect',
                         // Support changing the direction of the dropdown if there isn't enough space to render it.
                         scope.$watch('$select.open', function (isOpen) {
                             if (isOpen) {
+                                // Get the dropdown element
                                 dropdown = angular.element(element).querySelectorAll('.ui-select-dropdown');
                                 if (dropdown === null) {
                                     return;
@@ -248,8 +245,6 @@ uis.directive('uiSelect',
                                     if (offset.top + offset.height + offsetDropdown.height >
                                         $document[0].documentElement.scrollTop +
                                         $document[0].documentElement.clientHeight) {
-                                        dropdown[0].style.position = 'absolute';
-                                        dropdown[0].style.top = (offsetDropdown.height * -1) + 'px';
                                         element.addClass(directionUpClassName);
                                     }
 
@@ -262,8 +257,6 @@ uis.directive('uiSelect',
                                 }
 
                                 // Reset the position of the dropdown.
-                                dropdown[0].style.position = '';
-                                dropdown[0].style.top = '';
                                 element.removeClass(directionUpClassName);
                             }
                         });

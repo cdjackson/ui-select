@@ -47,6 +47,10 @@ body > .select2-container.open {
     border-top-right-radius: 0;
 }
 .ui-select-container[theme="select2"].direction-up .ui-select-dropdown {
+    bottom: 100%;
+    top: auto;
+    position: absolute;
+
     border-radius: 4px; /* FIXME hardcoded value :-/ */
     border-bottom-left-radius: 0;
     border-bottom-right-radius: 0;
@@ -89,6 +93,10 @@ body > .select2-container.open {
 
 /* Handle up direction Selectize */
 .ui-select-container[theme="selectize"].direction-up .ui-select-dropdown {
+    bottom: 100%;
+    top: auto;
+    position: absolute;
+
     box-shadow: 0 -4px 8px rgba(0, 0, 0, 0.25);
 
     margin-top: -2px; /* FIXME hardcoded value :-/ */
@@ -263,5 +271,9 @@ body > .ui-select-bootstrap.open {
 
 /* Handle up direction Bootstrap */
 .ui-select-container[theme="bootstrap"].direction-up .ui-select-dropdown {
+    bottom: 100%;
+    top: auto;
+    position: absolute;
+
     box-shadow: 0 -4px 8px rgba(0, 0, 0, 0.25);
 }
