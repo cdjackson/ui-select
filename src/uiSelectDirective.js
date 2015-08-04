@@ -274,8 +274,6 @@ uis.directive('uiSelect',
 
               // Determine if the direction of the dropdown needs to be changed.
               if (offset.top + offset.height + offsetDropdown.height > $document[0].documentElement.scrollTop + $document[0].documentElement.clientHeight) {
-                dropdown[0].style.position = 'absolute';
-                dropdown[0].style.top = (offsetDropdown.height * -1) + 'px';
                 element.addClass(directionUpClassName);
               }
 
@@ -288,8 +286,6 @@ uis.directive('uiSelect',
               }
 
               // Reset the position of the dropdown.
-              dropdown[0].style.position = '';
-              dropdown[0].style.top = '';
               element.removeClass(directionUpClassName);
           }
         });
