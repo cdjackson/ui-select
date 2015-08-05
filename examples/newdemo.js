@@ -144,6 +144,19 @@ app.controller('DemoCtrl', function ($scope, $http, $timeout, $interval) {
         {name: 'Nicolás', email: 'nicolas@email.com', age: 43, country: 'Colombia'}
     ];
 
+    $scope.people2 = {
+        adam:{name: 'Adam', email: 'adam@email.com', age: 12, country: 'United States'},
+        amalie: {name: 'Amalie', email: 'amalie@email.com', age: 12, country: 'Argentina'},
+        estefana: {name: 'Estefanía', email: 'estefania@email.com', age: 21, country: 'Argentina'},
+        adriana: {name: 'Adrian', email: 'adrian@email.com', age: 21, country: 'Ecuador'},
+        vlad: {name: 'Wladimir', email: 'wladimir@email.com', age: 30, country: 'Ecuador'},
+        sam: {name: 'Samantha', email: 'samantha@email.com', age: 30, country: 'United States'},
+        nic: {name: 'Nicole', email: 'nicole@email.com', age: 43, country: 'Colombia'},
+        nat: {name: 'Natasha', email: 'natasha@email.com', age: 54, country: 'Ecuador'},
+        Mic: {name: 'Michael', email: 'michael@email.com', age: 15, country: 'Colombia'},
+        nicola: {name: 'Nicolás', email: 'nicolas@email.com', age: 43, country: 'Colombia'}
+    };
+
     $scope.availableColors = ['Red', 'Green', 'Blue', 'Yellow', 'Magenta', 'Maroon', 'Umbra', 'Turquoise'];
 
     $scope.singleDemo = {};
@@ -530,5 +543,74 @@ app.controller('DemoCtrl', function ($scope, $http, $timeout, $interval) {
         return dupeIndex;
     }
 
+    $scope.onComboKeypress = function (e) {
+        return;
+        var $select = this.$select;
+        // Push a "create new" item into array if there is a search string
+        if ($select.search.length > 0) {
+            // always reset the activeIndex to the first item when tagging
+            $select.activeIndex = $select.taggingLabel === false ? -1 : 0;
 
+            var items = angular.copy($select.items);
+            var stashArr = angular.copy($select.items);
+            var newItem;
+            var item;
+            var hasTag = false;
+            var dupeIndex = -1;
+            var tagItems;
+            var tagItem;
+
+            newItem = $select.search;
+            dupeIndex = _findApproxDupe($select.items, newItem);
+            if(dupeIndex != -1) {
+                items = items.slice(dupeIndex + 1, items.length - 1);
+            }
+
+            // Verify that the tag doesn't match the value of a selected item
+            if (_findCaseInsensitiveDupe($select.search, stashArr.concat($select.selected))) {
+                $scope.$evalAsync(function () {
+                    $select.activeIndex = 0;
+                    $select.items = items;
+                });
+                return;
+            }
+
+            // Verify that the tag doesn't match the value of a new tag item
+            if (_findCaseInsensitiveDupe($select.search, stashArr)) {
+                $scope.$evalAsync(function () {
+                    $select.activeIndex = 0;
+                    $select.items = items;
+                });
+                return;
+            }
+
+            // Add the new item
+            stashArr = [];
+            stashArr.push(newItem);
+            stashArr = stashArr.concat(items);
+
+            $scope.$evalAsync(function () {
+                $select.activeIndex = 0;
+                $select.items = stashArr;
+            });
+        }
+    };
+
+    $scope.onComboBeforeSelect = function ($item) {
+        var $select = this.$select;
+
+        var newItem = {name: $select.search, email: 'an email', age: 12, country: 'nowhere'};
+
+//        var stashArr = [];
+  //      stashArr.push(newItem);
+    //    stashArr = stashArr.concat($select.items);
+
+        $scope.$evalAsync(function () {
+            $select.activeIndex = -2;
+          //  $select.items = stashArr;
+        });
+
+        // For tagging, use the search if there's no item selected
+        return $item !== undefined ? $item : newItem;
+    };
 });

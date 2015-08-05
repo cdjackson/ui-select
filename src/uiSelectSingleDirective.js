@@ -7,7 +7,7 @@ uis.directive('uiSelectSingle', ['$timeout', '$compile', function ($timeout, $co
             var $select = ctrls[0];
             var ngModel = ctrls[1];
 
-            //From view --> model
+            // From view --> model
             ngModel.$parsers.unshift(function (inputValue) {
                 var locals = {},
                     result;
@@ -16,7 +16,7 @@ uis.directive('uiSelectSingle', ['$timeout', '$compile', function ($timeout, $co
                 return result;
             });
 
-            //From model --> view
+            // From model --> view
             ngModel.$formatters.unshift(function (inputValue) {
                 var data = $select.parserResult.source(scope, {$select: {search: ''}}), //Overwrite $search
                     locals = {},
@@ -27,7 +27,7 @@ uis.directive('uiSelectSingle', ['$timeout', '$compile', function ($timeout, $co
                         result = $select.parserResult.modelMapper(scope, locals);
                         return result == inputValue;
                     };
-                    //If possible pass same object stored in $select.selected
+                    // If possible pass same object stored in $select.selected
                     if ($select.selected && checkFnSingle($select.selected)) {
                         return $select.selected;
                     }
@@ -40,7 +40,7 @@ uis.directive('uiSelectSingle', ['$timeout', '$compile', function ($timeout, $co
                 return inputValue;
             });
 
-            //Update viewValue if model change
+            // Update viewValue if model change
             scope.$watch('$select.selected', function (newValue) {
                 if (ngModel.$viewValue !== newValue) {
                     ngModel.$setViewValue(newValue);
@@ -63,15 +63,16 @@ uis.directive('uiSelectSingle', ['$timeout', '$compile', function ($timeout, $co
             });
 
             scope.$on('uis:activate', function () {
-                focusser.prop('disabled', true); //Will reactivate it on .close()
+                // Will reactivate it on .close()
+                focusser.prop('disabled', true);
             });
 
-            //Idea from: https://github.com/ivaynberg/select2/blob/79b5bf6db918d7560bdd959109b7bcfb47edaf43/select2.js#L1954
+            // Idea from: https://github.com/ivaynberg/select2/blob/79b5bf6db918d7560bdd959109b7bcfb47edaf43/select2.js#L1954
             var focusser = angular.element("<input ng-disabled='$select.disabled' class='ui-select-focusser ui-select-offscreen' type='text' id='{{ $select.focusserId }}' aria-label='{{ $select.focusserTitle }}' aria-haspopup='true' role='button' />");
             $compile(focusser)(scope);
             $select.focusser = focusser;
 
-            //Input that will handle focus
+            // Input that will handle focus
             $select.focusInput = focusser;
 
             element.parent().append(focusser);
@@ -85,8 +86,8 @@ uis.directive('uiSelectSingle', ['$timeout', '$compile', function ($timeout, $co
                     $select.focus = false;
                 });
             });
-            focusser.bind("keydown", function (e) {
 
+            focusser.bind("keydown", function (e) {
                 if (e.which === KEY.BACKSPACE) {
                     e.preventDefault();
                     e.stopPropagation();
@@ -109,13 +110,13 @@ uis.directive('uiSelectSingle', ['$timeout', '$compile', function ($timeout, $co
             });
 
             focusser.bind("keyup input", function (e) {
-
                 if (e.which === KEY.TAB || KEY.isControl(e) || KEY.isFunctionKey(e) || e.which === KEY.ESC ||
                     e.which == KEY.ENTER || e.which === KEY.BACKSPACE) {
                     return;
                 }
 
-                $select.activate(focusser.val()); //User pressed some regular key, so we pass it to the search input
+                // User pressed some regular key, so we pass it to the search input
+                $select.activate(focusser.val());
                 focusser.val('');
                 scope.$digest();
             });

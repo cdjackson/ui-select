@@ -17,14 +17,15 @@ uis.directive('uiSelect',
                 controllerAs: '$select',
                 compile: function (tElement, tAttrs) {
 
-                    //Multiple or Single depending if multiple attribute presence
-                    if (angular.isDefined(tAttrs.multiple))
+                    // Multiple or Single depending if multiple attribute presence
+                    if (angular.isDefined(tAttrs.multiple)) {
                         tElement.append("<ui-select-multiple/>").removeAttr('multiple');
-                    else
+                    }
+                    else {
                         tElement.append("<ui-select-single/>");
+                    }
 
                     return function (scope, element, attrs, ctrls, transcludeFn) {
-
                         var $select = ctrls[0];
                         var ngModel = ctrls[1];
 
@@ -46,11 +47,12 @@ uis.directive('uiSelect',
                         $select.onRemoveCallback = $parse(attrs.onRemove);
                         $select.onBeforeRemoveCallback = $parse(attrs.onBeforeRemove);
                         $select.onKeypressCallback = $parse(attrs.onKeypress);
+                        $select.onDropdownCallback = $parse(attrs.onDropdown);
 
-                        //Limit the number of selections allowed
+                        // Limit the number of selections allowed
                         $select.limit = (angular.isDefined(attrs.limit)) ? parseInt(attrs.limit, 10) : undefined;
 
-                        //Set reference to ngModel from uiSelectCtrl
+                        // Set reference to ngModel from uiSelectCtrl
                         $select.ngModel = ngModel;
 
                         $select.choiceGrouped = function (group) {
@@ -84,7 +86,7 @@ uis.directive('uiSelect',
                             });
                         }
 
-                        //Gets focus based on scope event name (e.g. focus-on='SomeEventName')
+                        // Gets focus based on scope event name (e.g. focus-on='SomeEventName')
                         if (angular.isDefined(attrs.focusOn)) {
                             scope.$on(attrs.focusOn, function () {
                                 $timeout(function () {
@@ -94,7 +96,10 @@ uis.directive('uiSelect',
                         }
 
                         function onDocumentClick(e) {
-                            if (!$select.open) return; //Skip it if dropdown is close
+                            //Skip it if dropdown is close
+                            if (!$select.open) {
+                                return;
+                            }
 
                             var contains = false;
 
@@ -107,14 +112,14 @@ uis.directive('uiSelect',
                             }
 
                             if (!contains && !$select.clickTriggeredSelect) {
-                                //Will lose focus only with certain targets
+                                // Will lose focus only with certain targets
                                 var focusableControls = ['input', 'button', 'textarea'];
-                                //To check if target is other ui-select
+                                // To check if target is other ui-select
                                 var targetScope = angular.element(e.target).scope();
-                                //To check if target is other ui-select
+                                // To check if target is other ui-select
                                 var skipFocusser = targetScope && targetScope.$select &&
                                     targetScope.$select !== $select;
-                                //Check if target is input, button or textarea
+                                // Check if target is input, button or textarea
                                 if (!skipFocusser) {
                                     skipFocusser = ~focusableControls.indexOf(e.target.tagName.toLowerCase());
                                 }

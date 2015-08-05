@@ -43,13 +43,18 @@ uis.directive('uiSelectMultiple', ['uiSelectMinErr', '$timeout', function (uiSel
                 ctrl.activeMatchIndex = -1;
                 $select.sizeSearchInput();
 
+                // If there's no onBeforeRemove callback, then we're done
+                if(!angular.isDefined(ctrl.onBeforeRemoveCallback)) {
+                    return;
+                }
+
                 var callbackContext = {
                     $item: removedChoice,
                     $model: $select.parserResult.modelMapper($scope, locals)
                 };
 
                 // Give some time for scope propagation.
-                function completeRemoval() {
+                function completeCallback() {
                     $timeout(function () {
                         $select.onRemoveCallback($scope, callbackContext);
                     });
@@ -62,21 +67,21 @@ uis.directive('uiSelectMultiple', ['uiSelectMinErr', '$timeout', function (uiSel
                 // falsy: Abort the removal
                 // promise: Wait for response
                 // true: Complete removal
-                var onBeforeRemoveResult = ctrl.onBeforeRemoveCallback($scope, callbackContext);
-                if (angular.isDefined(onBeforeRemoveResult)) {
-                    if (angular.isFunction(onBeforeRemoveResult.then)) {
+                var result = ctrl.onBeforeRemoveCallback($scope, callbackContext);
+                if (angular.isDefined(result)) {
+                    if (angular.isFunction(result.then)) {
                         // Promise returned - wait for it to complete before completing the selection
-                        onBeforeRemoveResult.then(function (result) {
+                        result.then(function (result) {
                             if (!result) {
                                 return;
                             }
-                            completeRemoval(result);
+                            completeCallback(result);
                         });
-                    } else if (onBeforeRemoveResult === true) {
-                        completeRemoval();
+                    } else if (result === true) {
+                        completeCallback();
                     }
                 } else {
-                    completeRemoval();
+                    completeCallback();
                 }
             };
 
