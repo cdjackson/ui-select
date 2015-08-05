@@ -381,55 +381,6 @@ describe('ui-select tests', function() {
     expect(isDropdownOpened(el3)).toEqual(true);
   });
 
-  it('should allow decline tags when tagging function returns null', function() {
-    scope.taggingFunc = function (name) {
-      return null;
-    };
-
-    var el = createUiSelect({tagging: 'taggingFunc'});
-    clickMatch(el);
-
-    $(el).scope().$select.search = 'idontexist';
-    $(el).scope().$select.activeIndex = 0;
-    $(el).scope().$select.select('idontexist');
-
-    expect($(el).scope().$select.selected).not.toBeDefined();
-  });
-
-  it('should allow tagging if the attribute says so', function() {
-    var el = createUiSelect({tagging: true});
-    clickMatch(el);
-
-    $(el).scope().$select.select("I don't exist");
-
-    expect($(el).scope().$select.selected).toEqual("I don't exist");
-  });
-
-  it('should format new items using the tagging function when the attribute is a function', function() {
-    scope.taggingFunc = function (name) {
-      return {
-        name: name,
-        email: name + '@email.com',
-        group: 'Foo',
-        age: 12
-      };
-    };
-
-    var el = createUiSelect({tagging: 'taggingFunc'});
-    clickMatch(el);
-
-    $(el).scope().$select.search = 'idontexist';
-    $(el).scope().$select.activeIndex = 0;
-    $(el).scope().$select.select('idontexist');
-
-    expect($(el).scope().$select.selected).toEqual({
-      name: 'idontexist',
-      email: 'idontexist@email.com',
-      group: 'Foo',
-      age: 12
-    });
-  });
-
   // See when an item that evaluates to false (such as "false" or "no") is selected, the placeholder is shown https://github.com/angular-ui/ui-select/pull/32
   it('should not display the placeholder when item evaluates to false', function() {
     scope.items = ['false'];
@@ -1262,58 +1213,6 @@ describe('ui-select tests', function() {
     expect(scope.$model).toBe(scope.$item);
   });
 
-  it('should allow creating tag in single select mode with tagging enabled', function() {
-
-    scope.taggingFunc = function (name) {
-      return name;
-    };
-
-    var el = compileTemplate(
-      '<ui-select ng-model="selection.selected" tagging="taggingFunc" tagging-label="false"> \
-        <ui-select-match placeholder="Pick one...">{{$select.selected.name}}</ui-select-match> \
-        <ui-select-choices repeat="person in people | filter: $select.search"> \
-          <div ng-bind-html="person.name" | highlight: $select.search"></div> \
-          <div ng-bind-html="person.email | highlight: $select.search"></div> \
-        </ui-select-choices> \
-      </ui-select>'
-    );
-
-    clickMatch(el);
-
-    var searchInput = el.find('.ui-select-search');
-
-    setSearchText(el, 'idontexist');
-
-    triggerKeydown(searchInput, Key.Enter);
-
-    expect($(el).scope().$select.selected).toEqual('idontexist');
-  });
-
-  it('should allow creating tag on ENTER in multiple select mode with tagging enabled, no labels', function() {
-
-    scope.taggingFunc = function (name) {
-      return name;
-    };
-
-    var el = compileTemplate(
-        '<ui-select multiple ng-model="selection.selected" tagging="taggingFunc" tagging-label="false"> \
-          <ui-select-match placeholder="Pick one...">{{$select.selected.name}}</ui-select-match> \
-          <ui-select-choices repeat="person in people | filter: $select.search"> \
-            <div ng-bind-html="person.name" | highlight: $select.search"></div> \
-            <div ng-bind-html="person.email | highlight: $select.search"></div> \
-          </ui-select-choices> \
-        </ui-select>'
-    );
-
-    var searchInput = el.find('.ui-select-search');
-
-    setSearchText(el, 'idontexist');
-
-    triggerKeydown(searchInput, Key.Enter);
-
-    expect($(el).scope().$select.selected).toEqual(['idontexist']);
-  });
-
   it('should append/transclude content (with correct scope) that users add at <match> tag', function () {
 
     var el = compileTemplate(
@@ -1354,62 +1253,6 @@ describe('ui-select tests', function() {
     openDropdown(el);
     expect($(el).find('.only-once').length).toEqual(1);
 
-
-  });
-
-  it('should call refresh function when search text changes', function () {
-
-    var el = compileTemplate(
-      '<ui-select ng-model="selection.selected"> \
-        <ui-select-match> \
-        </ui-select-match> \
-        <ui-select-choices repeat="person in people | filter: $select.search" \
-          refresh="fetchFromServer($select.search)" refresh-delay="0"> \
-          <div ng-bind-html="person.name | highlight: $select.search"></div> \
-          <div ng-if="person.name==\'Wladimir\'"> \
-            <span class="only-once">I should appear only once</span>\
-          </div> \
-        </ui-select-choices> \
-      </ui-select>'
-    );
-
-    scope.fetchFromServer = function(){};
-
-    spyOn(scope, 'fetchFromServer');
-
-    el.scope().$select.search = 'r';
-    scope.$digest();
-    $timeout.flush();
-
-    expect(scope.fetchFromServer).toHaveBeenCalledWith('r');
-
-  });
-
-  it('should call refresh function when search text changes', function () {
-
-    var el = compileTemplate(
-      '<ui-select ng-model="selection.selected"> \
-        <ui-select-match> \
-        </ui-select-match> \
-        <ui-select-choices repeat="person in people | filter: $select.search" \
-          refresh="fetchFromServer($select.search)" refresh-delay="0"> \
-          <div ng-bind-html="person.name | highlight: $select.search"></div> \
-          <div ng-if="person.name==\'Wladimir\'"> \
-            <span class="only-once">I should appear only once</span>\
-          </div> \
-        </ui-select-choices> \
-      </ui-select>'
-    );
-
-    scope.fetchFromServer = function(){};
-
-    spyOn(scope, 'fetchFromServer');
-
-    el.scope().$select.search = 'r';
-    scope.$digest();
-    $timeout.flush();
-
-    expect(scope.fetchFromServer).toHaveBeenCalledWith('r');
 
   });
 
@@ -2253,33 +2096,4 @@ describe('ui-select tests', function() {
       expect(el.css('width')).toBe(originalWidth);
     });
   });
-
-    describe('with refresh on active', function(){
-        it('should not refresh untill is activate', function(){
-
-            var el = compileTemplate(
-                '<ui-select ng-model="selection.selected"> \
-                  <ui-select-match> \
-                  </ui-select-match> \
-                  <ui-select-choices repeat="person in people | filter: $select.search" \
-                    refresh="fetchFromServer($select.search)" refresh-on-active="true" refresh-delay="0"> \
-                    <div ng-bind-html="person.name | highlight: $select.search"></div> \
-                    <div ng-if="person.name==\'Wladimir\'"> \
-                      <span class="only-once">I should appear only once</span>\
-                    </div> \
-                  </ui-select-choices> \
-                </ui-select>'
-            );
-
-            scope.fetchFromServer = function(){};
-            spyOn(scope, 'fetchFromServer');
-            $timeout.flush();
-            expect(scope.fetchFromServer.calls.any()).toEqual(false);
-
-            el.scope().$select.activate();
-            $timeout.flush();
-            expect(scope.fetchFromServer.calls.any()).toEqual(true);
-        });
-
-    });
 });
