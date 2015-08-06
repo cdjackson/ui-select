@@ -41,7 +41,7 @@
 <form class="form-horizontal">
     <fieldset>
         <legend>ui-select inside a Bootstrap form</legend>
-<!--
+
         <div class="form-group">
             <label class="col-sm-3 control-label">Default</label>
 
@@ -76,11 +76,11 @@
         </div>
 
         <div class="form-group">
-            <label class="col-sm-3 control-label">Multiple</label>
+            <label class="col-sm-3 control-label">Multiple (sortable)</label>
 
             <div class="col-sm-6">
 
-                <ui-select multiple ng-model="person.selected" theme="bootstrap" class="form-control" sortable="false"
+                <ui-select multiple ng-model="person.selected" theme="bootstrap" class="form-control" sortable="true"
                            close-on-select="false">
                     <ui-select-match placeholder="Select or search a person in the list...">{{$item.name}}
                     </ui-select-match>
@@ -150,7 +150,7 @@
                 </ui-select>
             </div>
         </div>
--->
+
         <div class="form-group">
             <label class="col-sm-3 control-label">Tagging</label>
 

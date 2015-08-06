@@ -27,7 +27,11 @@ uis.directive('uiSelectMultiple', ['uiSelectMinErr', '$timeout', function (uiSel
                 $select.sizeSearchInput();
             };
 
-            // Remove item from multiple select
+            /**
+             * Remove item from multiple select
+             * Calls onBeforeRemove to allow the user to prevent the removal of the item
+             * Then calls onRemove to notify the user the item has been removed
+             */
             ctrl.removeChoice = function (index) {
                 var removedChoice = $select.selected[index];
 
@@ -43,11 +47,6 @@ uis.directive('uiSelectMultiple', ['uiSelectMinErr', '$timeout', function (uiSel
                 ctrl.activeMatchIndex = -1;
                 $select.sizeSearchInput();
 
-                // If there's no onBeforeRemove callback, then we're done
-                if(!angular.isDefined(ctrl.onBeforeRemoveCallback)) {
-                    return;
-                }
-
                 var callbackContext = {
                     $item: removedChoice,
                     $model: $select.parserResult.modelMapper($scope, locals)
@@ -60,6 +59,12 @@ uis.directive('uiSelectMultiple', ['uiSelectMinErr', '$timeout', function (uiSel
                     });
 
                     ctrl.updateModel();
+                }
+
+                // If there's no onBeforeRemove callback, then just call the completeCallback
+                if(!angular.isDefined(ctrl.onBeforeRemoveCallback)) {
+                    completeCallback();
+                    return;
                 }
 
                 // Call the onBeforeRemove callback

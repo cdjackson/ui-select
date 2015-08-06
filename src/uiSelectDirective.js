@@ -1,6 +1,6 @@
 uis.directive('uiSelect',
-    ['$document', 'uiSelectConfig', 'uiSelectMinErr', 'uisOffset', '$compile', '$parse', '$timeout',
-        function ($document, uiSelectConfig, uiSelectMinErr, uisOffset, $compile, $parse, $timeout) {
+    ['$document', '$window', 'uiSelectConfig', 'uiSelectMinErr', 'uisOffset', '$compile', '$parse', '$timeout',
+        function ($document, $window, uiSelectConfig, uiSelectMinErr, uisOffset, $compile, $parse, $timeout) {
 
             return {
                 restrict: 'EA',
@@ -247,9 +247,7 @@ uis.directive('uiSelect',
                                     var offsetDropdown = uisOffset(dropdown);
 
                                     // Determine if the direction of the dropdown needs to be changed.
-                                    if (offset.top + offset.height + offsetDropdown.height >
-                                        $document[0].documentElement.scrollTop +
-                                        $document[0].documentElement.clientHeight) {
+                                    if (offset.top + offset.height + offsetDropdown.height > $window.pageYOffset + $document[0].documentElement.clientHeight) {
                                         element.addClass(directionUpClassName);
                                     }
 

@@ -1,3 +1,13 @@
+/*!
+ * ui-select
+ * http://github.com/angular-ui/ui-select
+ * Version: 0.12.1 - 2015-08-06T11:06:02.049Z
+ * License: MIT
+ */
+
+
+(function () { 
+"use strict";
 // Make multiple matches sortable
 angular.module('ui.select.sort', ['ui.select'])
     .directive('uiSelectSort',
@@ -139,3 +149,5 @@ angular.module('ui.select.sort', ['ui.select'])
             }
         };
     }]);
+
+}());

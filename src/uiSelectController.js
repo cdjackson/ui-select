@@ -244,7 +244,6 @@ uis.controller('uiSelectCtrl',
              * @return {boolean} true if the item is disabled
              */
             ctrl.isDisabled = function (itemScope) {
-
                 if (!ctrl.open) {
                     return false;
                 }
@@ -262,9 +261,10 @@ uis.controller('uiSelectCtrl',
                 return isDisabled;
             };
 
-
             /**
-             * Selects an item
+             * Selects an item. Calls the onBeforeSelect and onSelect callbacks
+             * onBeforeSelect is called to allow the user to alter or abort the selection
+             * onSelect is called to notify the user of the selection
              *
              * Called when the user selects an item with ENTER or clicks the dropdown
              */
@@ -304,6 +304,12 @@ uis.controller('uiSelectCtrl',
                     }
                 };
 
+                // If there's no onBeforeSelect callback, then just call the completeCallback
+                if(!angular.isDefined(ctrl.onBeforeRemoveCallback)) {
+                    completeCallback(item);
+                    return;
+                }
+
                 // Call the onBeforeSelect callback
                 // Allowable responses are -:
                 // falsy: Abort the selection
@@ -314,11 +320,15 @@ uis.controller('uiSelectCtrl',
                 if (angular.isDefined(result)) {
                     if (angular.isFunction(result.then)) {
                         // Promise returned - wait for it to complete before completing the selection
-                        result.then(function (result) {
-                            if (!result) {
+                        result.then(function (response) {
+                            if (!response) {
                                 return;
                             }
-                            completeCallback(result);
+                            if (response === true) {
+                                completeCallback(item);
+                            } else if (response) {
+                                completeCallback(response);
+                            }
                         });
                     } else if (result === true) {
                         completeCallback(item);

@@ -1,7 +1,7 @@
 /*!
  * ui-select
  * http://github.com/angular-ui/ui-select
- * Version: 0.12.1 - 2015-08-05T18:50:43.070Z
+ * Version: 0.12.1 - 2015-08-06T11:06:02.035Z
  * License: MIT
  */
 
@@ -588,7 +588,6 @@ uis.controller('uiSelectCtrl',
              * @return {boolean} true if the item is disabled
              */
             ctrl.isDisabled = function (itemScope) {
-
                 if (!ctrl.open) {
                     return false;
                 }
@@ -608,7 +607,8 @@ uis.controller('uiSelectCtrl',
 
 
             /**
-             * Selects an item
+             * Selects an item. Calls the onBeforeSelect and onSelect callbacks
+             * onBeforeSelect can alter or abort the selection
              *
              * Called when the user selects an item with ENTER or clicks the dropdown
              */
@@ -648,6 +648,12 @@ uis.controller('uiSelectCtrl',
                     }
                 };
 
+                // If there's no onBeforeSelect callback, then just call the completeCallback
+                if(!angular.isDefined(ctrl.onBeforeRemoveCallback)) {
+                    completeCallback(item);
+                    return;
+                }
+
                 // Call the onBeforeSelect callback
                 // Allowable responses are -:
                 // falsy: Abort the selection
@@ -658,11 +664,15 @@ uis.controller('uiSelectCtrl',
                 if (angular.isDefined(result)) {
                     if (angular.isFunction(result.then)) {
                         // Promise returned - wait for it to complete before completing the selection
-                        result.then(function (result) {
-                            if (!result) {
+                        result.then(function (response) {
+                            if (!response) {
                                 return;
                             }
-                            completeCallback(result);
+                            if (response === true) {
+                                completeCallback(item);
+                            } else if (response) {
+                                completeCallback(response);
+                            }
                         });
                     } else if (result === true) {
                         completeCallback(item);
@@ -914,8 +924,8 @@ uis.controller('uiSelectCtrl',
         }]);
 
 uis.directive('uiSelect',
-    ['$document', 'uiSelectConfig', 'uiSelectMinErr', 'uisOffset', '$compile', '$parse', '$timeout',
-        function ($document, uiSelectConfig, uiSelectMinErr, uisOffset, $compile, $parse, $timeout) {
+    ['$document', '$window', 'uiSelectConfig', 'uiSelectMinErr', 'uisOffset', '$compile', '$parse', '$timeout',
+        function ($document, $window, uiSelectConfig, uiSelectMinErr, uisOffset, $compile, $parse, $timeout) {
 
             return {
                 restrict: 'EA',
@@ -1162,9 +1172,7 @@ uis.directive('uiSelect',
                                     var offsetDropdown = uisOffset(dropdown);
 
                                     // Determine if the direction of the dropdown needs to be changed.
-                                    if (offset.top + offset.height + offsetDropdown.height >
-                                        $document[0].documentElement.scrollTop +
-                                        $document[0].documentElement.clientHeight) {
+                                    if (offset.top + offset.height + offsetDropdown.height > $window.pageYOffset + $document[0].documentElement.clientHeight) {
                                         element.addClass(directionUpClassName);
                                     }
 
@@ -1263,11 +1271,6 @@ uis.directive('uiSelectMultiple', ['uiSelectMinErr', '$timeout', function (uiSel
                 ctrl.activeMatchIndex = -1;
                 $select.sizeSearchInput();
 
-                // If there's no onBeforeRemove callback, then we're done
-                if(!angular.isDefined(ctrl.onBeforeRemoveCallback)) {
-                    return;
-                }
-
                 var callbackContext = {
                     $item: removedChoice,
                     $model: $select.parserResult.modelMapper($scope, locals)
@@ -1280,6 +1283,12 @@ uis.directive('uiSelectMultiple', ['uiSelectMinErr', '$timeout', function (uiSel
                     });
 
                     ctrl.updateModel();
+                }
+
+                // If there's no onBeforeRemove callback, then just call the completeCallback
+                if(!angular.isDefined(ctrl.onBeforeRemoveCallback)) {
+                    completeCallback();
+                    return;
                 }
 
                 // Call the onBeforeRemove callback
