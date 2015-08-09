@@ -1,50 +1,3 @@
-var KEY = {
-    TAB: 9,
-    ENTER: 13,
-    ESC: 27,
-    SPACE: 32,
-    LEFT: 37,
-    UP: 38,
-    RIGHT: 39,
-    DOWN: 40,
-    SHIFT: 16,
-    CTRL: 17,
-    ALT: 18,
-    PAGE_UP: 33,
-    PAGE_DOWN: 34,
-    HOME: 36,
-    END: 35,
-    BACKSPACE: 8,
-    DELETE: 46,
-    COMMAND: 91,
-
-    isControl: function (e) {
-        var k = e.which;
-        switch (k) {
-            case KEY.COMMAND:
-            case KEY.SHIFT:
-            case KEY.CTRL:
-            case KEY.ALT:
-                return true;
-        }
-
-        if (e.metaKey) {
-            return true;
-        }
-
-        return false;
-    },
-    isFunctionKey: function (k) {
-        k = k.which ? k.which : k;
-        return k >= 112 && k <= 123;
-    },
-    isVerticalMovement: function (k) {
-        return ~[KEY.UP, KEY.DOWN].indexOf(k);
-    },
-    isHorizontalMovement: function (k) {
-        return ~[KEY.LEFT, KEY.RIGHT, KEY.BACKSPACE, KEY.DELETE].indexOf(k);
-    }
-};
 
 /**
  * Add querySelectorAll() to jqLite.
@@ -97,7 +50,7 @@ var uis = angular.module('ui.select', [])
         appendToBody: false
     })
 
-// See Rename minErr and make it accessible from outside https://github.com/angular/angular.js/issues/6913
+    // See Rename minErr and make it accessible from outside https://github.com/angular/angular.js/issues/6913
     .service('uiSelectMinErr', function () {
         var minErr = angular.$$minErr('ui.select');
         return function () {
@@ -107,7 +60,7 @@ var uis = angular.module('ui.select', [])
         };
     })
 
-// Recreates old behavior of ng-transclude. Used internally.
+    // Recreates old behavior of ng-transclude. Used internally.
     .directive('uisTranscludeAppend', function () {
         return {
             link: function (scope, element, attrs, ctrl, transclude) {
@@ -118,29 +71,30 @@ var uis = angular.module('ui.select', [])
         };
     })
 
-/**
- * Highlights text that matches $select.search.
- *
- * Taken from AngularUI Bootstrap Typeahead
- * See https://github.com/angular-ui/bootstrap/blob/0.10.0/src/typeahead/typeahead.js#L340
- */
+    /**
+     * Highlights text that matches $select.search.
+     *
+     * Taken from AngularUI Bootstrap Typeahead
+     * See https://github.com/angular-ui/bootstrap/blob/0.10.0/src/typeahead/typeahead.js#L340
+     */
     .filter('highlight', function () {
         function escapeRegexp(queryToEscape) {
             return queryToEscape.replace(/([.?*+^$[\]\\(){}|-])/g, '\\$1');
         }
 
         return function (matchItem, query) {
+            matchItem = String(matchItem);
             return query && matchItem ? matchItem.replace(new RegExp(escapeRegexp(query), 'gi'),
                 '<span class="ui-select-highlight">$&</span>') : matchItem;
         };
     })
 
-/**
- * A read-only equivalent of jQuery's offset function: http://api.jquery.com/offset/
- *
- * Taken from AngularUI Bootstrap Position:
- * See https://github.com/angular-ui/bootstrap/blob/master/src/position/position.js#L70
- */
+    /**
+     * A read-only equivalent of jQuery's offset function: http://api.jquery.com/offset/
+     *
+     * Taken from AngularUI Bootstrap Position:
+     * See https://github.com/angular-ui/bootstrap/blob/master/src/position/position.js#L70
+     */
     .factory('uisOffset',
     ['$document', '$window',
         function ($document, $window) {

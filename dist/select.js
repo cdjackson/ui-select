@@ -1,11 +1,209 @@
 /*!
  * ui-select
  * http://github.com/angular-ui/ui-select
- * Version: 0.12.1 - 2015-08-06T13:28:34.991Z
+ * Version: 0.12.1 - 2015-08-09T18:09:19.229Z
  * License: MIT
  */
 
 
+(function () { 
+"use strict";
+angular.module('ui.select.tagging', ['ui.select'])
+    .directive('uiSelectTagging',
+    ['$parse', '$timeout', function () {
+        return {
+            require: '^uiSelect',
+            link: function (scope, element, attrs, $select) {
+                var ctrl = $select;
+                ctrl.taggingLabel = attrs.taggingLabel !== undefined ? attrs.taggingLabel : false;
+                ctrl.taggingTokens =
+                    attrs.taggingTokens !== undefined ? attrs.taggingTokens.split('|') : [',', 'ENTER'];
+
+                // If tagging try to split by tokens and add items
+                ctrl.searchInput.on('paste', function (e) {
+                    var data = e.clipboardData.getData('text/plain');
+                    if (data && data.length > 0) {
+                        var items = data.split(ctrl.taggingTokens[0]); // Split by first token only
+                        if (items && items.length > 0) {
+                            angular.forEach(items, function (item) {
+                                var newItem = ctrl.beforeTagging(item);
+                                if (newItem) {
+                                    ctrl.select(newItem, true);
+                                }
+                            });
+                            e.preventDefault();
+                            e.stopPropagation();
+                        }
+                    }
+                });
+
+                // Define the default callback into the controller
+                ctrl.beforeTagging = function (item) {
+                    return item;
+                };
+
+
+                // Override the keypress callback
+                ctrl.afterKeypress = function (e) {
+
+
+//                    if ( ! ctrl.KEY.isVerticalMovement(e.which) ) {
+//                        scope.$evalAsync( function () {
+//                            $select.activeIndex = $select.taggingLabel === false ? -1 : 0;
+//                        });
+//                    }
+
+                    // Push a "create new" item into array if there is a search string
+                    if ($select.search.length > 0) {
+                        // Return early with these keys
+                        if (e.which === ctrl.KEY.TAB || ctrl.KEY.isControl(e) || ctrl.KEY.isFunctionKey(e) ||
+                            e.which === ctrl.KEY.ESC ||
+                            ctrl.KEY.isVerticalMovement(e.which)) {
+                            return;
+                        }
+
+                        // Check for end of tagging
+                        var tagged = false;
+//                        if (e.which === ctrl.KEY.ENTER) {
+//                            tagged = true;
+//                        }
+                        for (var i = 0; i < ctrl.taggingTokens.length; i++) {
+                            if (ctrl.taggingTokens[i] === ctrl.KEY.MAP[e.keyCode]) {
+                                // Make sure there is a new value to push via tagging
+                                if (ctrl.search.length > 0) {
+                                    tagged = true;
+                                    if ($select.search.substr($select.search.length - 1) == ctrl.KEY.MAP[e.keyCode]) {
+
+                                    $select.search = $select.search.substr(0, $select.search.length - 1);
+                                }
+                                }
+                            }
+                        }
+                        if (tagged === true) {
+                            ctrl.select(ctrl.beforeTagging($select.search));
+                            return;
+                        }
+
+
+                        $select.activeIndex = $select.taggingLabel === false ? -1 : 0;
+                        // If taggingLabel === false bypasses all of this
+                        if ($select.taggingLabel === false) {
+                            return;
+                        }
+
+                        var items = angular.copy($select.items);
+                        var stashArr = angular.copy($select.items);
+                        var newItem;
+                        var item;
+                        var hasTag = false;
+                        var dupeIndex = -1;
+                        var tagItems;
+                        var tagItem;
+
+
+                        // Find any tagging items already in the $select.items array and store them
+                        tagItems = $select.$filter('filter')(items, function (item) {
+                            return item.match($select.taggingLabel);
+                        });
+                        if (tagItems.length > 0) {
+                            tagItem = tagItems[0];
+                        }
+                        item = items[0];
+                        // Remove existing tag item if found (should only ever be one tag item)
+                        if (item !== undefined && items.length > 0 && tagItem) {
+                            hasTag = true;
+                            items = items.slice(1, items.length);
+                            stashArr = stashArr.slice(1, stashArr.length);
+                        }
+                        newItem = $select.search + ' ' + $select.taggingLabel;
+                        if (_findApproxDupe($select.selected, $select.search) > -1) {
+                            return;
+                        }
+                        // Verify the the tag doesn't match the value of an existing item from
+                        // the searched data set or the items already selected
+                        if (_findCaseInsensitiveDupe(stashArr.concat($select.selected))) {
+                            // if there is a tag from prev iteration, strip it / queue the change
+                            // and return early
+                            if (hasTag) {
+                                items = stashArr;
+                                scope.$evalAsync(function () {
+                                    $select.activeIndex = 0;
+                                    $select.items = items;
+                                });
+                            }
+                            return;
+                        }
+                        if (_findCaseInsensitiveDupe(stashArr)) {
+                            // If there is a tag from prev iteration, strip it
+                            if (hasTag) {
+                                $select.items = stashArr.slice(1, stashArr.length);
+                            }
+                            return;
+                        }
+//                        }
+                        if (hasTag) {
+                            dupeIndex = _findApproxDupe($select.selected, newItem);
+                        }
+                        // dupe found, shave the first item
+                        if (dupeIndex > -1) {
+                            items = items.slice(dupeIndex + 1, items.length - 1);
+                        } else {
+                            items = [];
+                            items.push(newItem);
+                            items = items.concat(stashArr);
+                        }
+                        scope.$evalAsync(function () {
+                            $select.activeIndex = 0;
+                            $select.items = items;
+                        });
+                    }
+                };
+
+
+                function _findCaseInsensitiveDupe(arr) {
+                    if (arr === undefined || $select.search === undefined) {
+                        return false;
+                    }
+                    var hasDupe = arr.filter(function (origItem) {
+                            if ($select.search.toUpperCase() === undefined || origItem === undefined) {
+                                return false;
+                            }
+                            return origItem.toUpperCase() === $select.search.toUpperCase();
+                        }).length > 0;
+
+                    return hasDupe;
+                }
+
+                function _findApproxDupe(haystack, needle) {
+                    var dupeIndex = -1;
+                    if (angular.isArray(haystack)) {
+                        var tempArr = angular.copy(haystack);
+                        for (var i = 0; i < tempArr.length; i++) {
+                            // handle the simple string version of tagging
+//                            if ($select.tagging.fct === undefined) {
+                            // search the array for the match
+                            if (tempArr[i] + ' ' + $select.taggingLabel === needle) {
+                                dupeIndex = i;
+                            }
+                            // handle the object tagging implementation
+                            /*                            } else {
+                             var mockObj = tempArr[i];
+                             mockObj.isTag = true;
+                             if (angular.equals(mockObj, needle)) {
+                             dupeIndex = i;
+                             }
+                             }*/
+                        }
+                    }
+                    return dupeIndex;
+                }
+
+
+            }
+        };
+    }]);
+
+}());
 (function () { 
 "use strict";
 // Make multiple matches sortable
@@ -153,53 +351,6 @@ angular.module('ui.select.sort', ['ui.select'])
 }());
 (function () { 
 "use strict";
-var KEY = {
-    TAB: 9,
-    ENTER: 13,
-    ESC: 27,
-    SPACE: 32,
-    LEFT: 37,
-    UP: 38,
-    RIGHT: 39,
-    DOWN: 40,
-    SHIFT: 16,
-    CTRL: 17,
-    ALT: 18,
-    PAGE_UP: 33,
-    PAGE_DOWN: 34,
-    HOME: 36,
-    END: 35,
-    BACKSPACE: 8,
-    DELETE: 46,
-    COMMAND: 91,
-
-    isControl: function (e) {
-        var k = e.which;
-        switch (k) {
-            case KEY.COMMAND:
-            case KEY.SHIFT:
-            case KEY.CTRL:
-            case KEY.ALT:
-                return true;
-        }
-
-        if (e.metaKey) {
-            return true;
-        }
-
-        return false;
-    },
-    isFunctionKey: function (k) {
-        k = k.which ? k.which : k;
-        return k >= 112 && k <= 123;
-    },
-    isVerticalMovement: function (k) {
-        return ~[KEY.UP, KEY.DOWN].indexOf(k);
-    },
-    isHorizontalMovement: function (k) {
-        return ~[KEY.LEFT, KEY.RIGHT, KEY.BACKSPACE, KEY.DELETE].indexOf(k);
-    }
-};
 
 /**
  * Add querySelectorAll() to jqLite.
@@ -252,7 +403,7 @@ var uis = angular.module('ui.select', [])
         appendToBody: false
     })
 
-// See Rename minErr and make it accessible from outside https://github.com/angular/angular.js/issues/6913
+    // See Rename minErr and make it accessible from outside https://github.com/angular/angular.js/issues/6913
     .service('uiSelectMinErr', function () {
         var minErr = angular.$$minErr('ui.select');
         return function () {
@@ -262,7 +413,7 @@ var uis = angular.module('ui.select', [])
         };
     })
 
-// Recreates old behavior of ng-transclude. Used internally.
+    // Recreates old behavior of ng-transclude. Used internally.
     .directive('uisTranscludeAppend', function () {
         return {
             link: function (scope, element, attrs, ctrl, transclude) {
@@ -273,29 +424,30 @@ var uis = angular.module('ui.select', [])
         };
     })
 
-/**
- * Highlights text that matches $select.search.
- *
- * Taken from AngularUI Bootstrap Typeahead
- * See https://github.com/angular-ui/bootstrap/blob/0.10.0/src/typeahead/typeahead.js#L340
- */
+    /**
+     * Highlights text that matches $select.search.
+     *
+     * Taken from AngularUI Bootstrap Typeahead
+     * See https://github.com/angular-ui/bootstrap/blob/0.10.0/src/typeahead/typeahead.js#L340
+     */
     .filter('highlight', function () {
         function escapeRegexp(queryToEscape) {
             return queryToEscape.replace(/([.?*+^$[\]\\(){}|-])/g, '\\$1');
         }
 
         return function (matchItem, query) {
+            matchItem = String(matchItem);
             return query && matchItem ? matchItem.replace(new RegExp(escapeRegexp(query), 'gi'),
                 '<span class="ui-select-highlight">$&</span>') : matchItem;
         };
     })
 
-/**
- * A read-only equivalent of jQuery's offset function: http://api.jquery.com/offset/
- *
- * Taken from AngularUI Bootstrap Position:
- * See https://github.com/angular-ui/bootstrap/blob/master/src/position/position.js#L70
- */
+    /**
+     * A read-only equivalent of jQuery's offset function: http://api.jquery.com/offset/
+     *
+     * Taken from AngularUI Bootstrap Position:
+     * See https://github.com/angular-ui/bootstrap/blob/master/src/position/position.js#L70
+     */
     .factory('uisOffset',
     ['$document', '$window',
         function ($document, $window) {
@@ -392,7 +544,6 @@ uis.directive('uiSelectChoices',
 uis.controller('uiSelectCtrl',
     ['$scope', '$element', '$timeout', '$filter', '$q', 'uisRepeatParser', 'uiSelectMinErr', 'uiSelectConfig',
         function ($scope, $element, $timeout, $filter, $q, RepeatParser, uiSelectMinErr, uiSelectConfig) {
-
             var ctrl = this;
 
             var EMPTY_SEARCH = '';
@@ -401,23 +552,23 @@ uis.controller('uiSelectCtrl',
             ctrl.searchEnabled = uiSelectConfig.searchEnabled;
             ctrl.sortable = uiSelectConfig.sortable;
 
-            ctrl.removeSelected = false; // If selected item(s) should be removed from dropdown list
-            ctrl.closeOnSelect = true; // Initialized inside uiSelect directive link function
+            ctrl.removeSelected = false;                // If selected item(s) should be removed from dropdown list
+            ctrl.closeOnSelect = true;                  // Initialized inside uiSelect directive link function
             ctrl.search = EMPTY_SEARCH;
 
-            ctrl.activeIndex = 0; // Dropdown of choices
-            ctrl.items = []; // All available choices
+            ctrl.activeIndex = 0;                       // Dropdown of choices
+            ctrl.items = [];                            // All available choices
 
             ctrl.open = false;
             ctrl.focus = false;
             ctrl.disabled = false;
             ctrl.selected = undefined;
 
-            ctrl.focusser = undefined; // Reference to input element used to handle focus events
+            ctrl.focusser = undefined;                  // Reference to input element used to handle focus events
             ctrl.resetSearchInput = true;
-            ctrl.multiple = undefined; // Initialized inside uiSelect directive link function
-            ctrl.disableChoiceExpression = undefined; // Initialized inside uiSelectChoices directive link function
-            ctrl.lockChoiceExpression = undefined; // Initialized inside uiSelectMatch directive link function
+            ctrl.multiple = undefined;                  // Initialized inside uiSelect directive link function
+            ctrl.disableChoiceExpression = undefined;   // Initialized inside uiSelectChoices directive link function
+            ctrl.lockChoiceExpression = undefined;      // Initialized inside uiSelectMatch directive link function
             ctrl.clickTriggeredSelect = false;
             ctrl.$filter = $filter;
 
@@ -426,6 +577,158 @@ uis.controller('uiSelectCtrl',
                 throw uiSelectMinErr('searchInput', "Expected 1 input.ui-select-search but got '{0}'.",
                     ctrl.searchInput.length);
             }
+
+            // TODO: Maybe make these methods in KEY directly in the controller?
+            ctrl.KEY = {
+                TAB: 9,
+                ENTER: 13,
+                ESC: 27,
+                SPACE: 32,
+                LEFT: 37,
+                UP: 38,
+                RIGHT: 39,
+                DOWN: 40,
+                SHIFT: 16,
+                CTRL: 17,
+                ALT: 18,
+                PAGE_UP: 33,
+                PAGE_DOWN: 34,
+                HOME: 36,
+                END: 35,
+                BACKSPACE: 8,
+                DELETE: 46,
+                COMMAND: 91,
+                MAP: {
+                    91: "COMMAND",
+                    8: "BACKSPACE",
+                    9: "TAB",
+                    13: "ENTER",
+                    16: "SHIFT",
+                    17: "CTRL",
+                    18: "ALT",
+                    19: "PAUSEBREAK",
+                    20: "CAPSLOCK",
+                    27: "ESC",
+                    32: "SPACE",
+                    33: "PAGE_UP",
+                    34: "PAGE_DOWN",
+                    35: "END",
+                    36: "HOME",
+                    37: "LEFT",
+                    38: "UP",
+                    39: "RIGHT",
+                    40: "DOWN",
+                    43: "+",
+                    44: "PRINTSCREEN",
+                    45: "INSERT",
+                    46: "DELETE",
+                    48: "0",
+                    49: "1",
+                    50: "2",
+                    51: "3",
+                    52: "4",
+                    53: "5",
+                    54: "6",
+                    55: "7",
+                    56: "8",
+                    57: "9",
+                    59: ";",
+                    61: "=",
+                    65: "A",
+                    66: "B",
+                    67: "C",
+                    68: "D",
+                    69: "E",
+                    70: "F",
+                    71: "G",
+                    72: "H",
+                    73: "I",
+                    74: "J",
+                    75: "K",
+                    76: "L",
+                    77: "M",
+                    78: "N",
+                    79: "O",
+                    80: "P",
+                    81: "Q",
+                    82: "R",
+                    83: "S",
+                    84: "T",
+                    85: "U",
+                    86: "V",
+                    87: "W",
+                    88: "X",
+                    89: "Y",
+                    90: "Z",
+                    96: "0",
+                    97: "1",
+                    98: "2",
+                    99: "3",
+                    100: "4",
+                    101: "5",
+                    102: "6",
+                    103: "7",
+                    104: "8",
+                    105: "9",
+                    106: "*",
+                    107: "+",
+                    109: "-",
+                    110: ".",
+                    111: "/",
+                    112: "F1",
+                    113: "F2",
+                    114: "F3",
+                    115: "F4",
+                    116: "F5",
+                    117: "F6",
+                    118: "F7",
+                    119: "F8",
+                    120: "F9",
+                    121: "F10",
+                    122: "F11",
+                    123: "F12",
+                    144: "NUMLOCK",
+                    145: "SCROLLLOCK",
+                    186: ";",
+                    187: "=",
+                    188: ",",
+                    189: "-",
+                    190: ".",
+                    191: "/",
+                    192: "`",
+                    219: "[",
+                    220: "\\",
+                    221: "]",
+                    222: "'"
+                },
+
+                isControl: function (e) {
+                    var k = e.which;
+                    switch (k) {
+                        case ctrl.KEY.COMMAND:
+                        case ctrl.KEY.SHIFT:
+                        case ctrl.KEY.CTRL:
+                        case ctrl.KEY.ALT:
+                            return true;
+                    }
+
+                    if (e.metaKey) {
+                        return true;
+                    }
+
+                    return false;
+                },
+                isFunctionKey: function (k) {
+                    k = k.which ? k.which : k;
+                    return k >= 112 && k <= 123;
+                },
+                isVerticalMovement: function (k) {
+                    return ~[ctrl.KEY.UP, ctrl.KEY.DOWN].indexOf(k);
+                },
+                isHorizontalMovement: function (k) {
+                    return ~[ctrl.KEY.LEFT, ctrl.KEY.RIGHT, ctrl.KEY.BACKSPACE, ctrl.KEY.DELETE].indexOf(k);
+                }
+            };
 
             /**
              * Returns true if the selection is empty
@@ -467,6 +770,7 @@ uis.controller('uiSelectCtrl',
             /**
              * Activates the control.
              * When the user clicks on ui-select, displays the dropdown list
+             * Also called following keyboard input to the search box
              */
             ctrl.activate = function (initSearchValue, avoidReset) {
                 if (!ctrl.disabled && !ctrl.open) {
@@ -491,22 +795,15 @@ uis.controller('uiSelectCtrl',
                         });
                     };
 
-                    var result = ctrl.onDropdownCallback($scope, {open: true});
-                    if (angular.isDefined(result)) {
-                        if (angular.isFunction(result.then)) {
-                            // Promise returned - wait for it to complete before completing the selection
-                            result.then(function (result) {
-                                if (!result) {
-                                    return;
-                                }
+                    var result = ctrl.beforeDropdownOpen();
+                    if (angular.isFunction(result.then)) {
+                        // Promise returned - wait for it to complete before completing the selection
+                        result.then(function (result) {
+                            if (result === true) {
                                 completeCallback();
-                            });
-                        } else if (result === true) {
-                            completeCallback();
-                        } else if (result) {
-                            completeCallback();
-                        }
-                    } else {
+                            }
+                        });
+                    } else if (result === true) {
                         completeCallback();
                     }
                 }
@@ -616,9 +913,10 @@ uis.controller('uiSelectCtrl',
                 var isActive = itemIndex === -1 ? false : itemIndex === ctrl.activeIndex;
 
                 // If this is active, and we've defined a callback, do it!
-                if (isActive && !angular.isUndefined(ctrl.onHighlightCallback)) {
-                    itemScope.$eval(ctrl.onHighlightCallback);
-                }
+                // TODO: Needed?
+//                if (isActive && !angular.isUndefined(ctrl.onHighlightCallback)) {
+//                    itemScope.$eval(ctrl.onHighlightCallback);
+//                }
 
                 return isActive;
             };
@@ -663,22 +961,11 @@ uis.controller('uiSelectCtrl',
                     return;
                 }
 
-                // Create the data used to pass to the callbacks
-                var locals = {};
-                locals[ctrl.parserResult.itemName] = item;
-                var callbackContext = {
-                    $item: item,
-                    $model: ctrl.parserResult.modelMapper($scope, locals)
-                };
-
-                // Local method called when we complete the select
-                // eg. called after the onselect callback
-                var completeCallback = function (item) {
-                    callbackContext.$item = item;
+                function completeCallback() {
                     $scope.$broadcast('uis:select', item);
 
                     $timeout(function () {
-                        ctrl.onSelectCallback($scope, callbackContext);
+                        ctrl.afterSelect(item);
                     });
 
                     if (ctrl.closeOnSelect) {
@@ -687,41 +974,31 @@ uis.controller('uiSelectCtrl',
                     if ($event && $event.type === 'click') {
                         ctrl.clickTriggeredSelect = true;
                     }
-                };
-
-                // If there's no onBeforeSelect callback, then just call the completeCallback
-                if(!angular.isDefined(ctrl.onBeforeRemoveCallback)) {
-                    completeCallback(item);
-                    return;
                 }
 
-                // Call the onBeforeSelect callback
+                // Call the beforeSelect method
                 // Allowable responses are -:
-                // falsy: Abort the selection
-                // promise: Wait for response
+                // false: Abort the selection
                 // true: Complete selection
+                // promise: Wait for response
                 // object: Add the returned object
-                var result = ctrl.onBeforeSelectCallback($scope, callbackContext);
-                if (angular.isDefined(result)) {
-                    if (angular.isFunction(result.then)) {
-                        // Promise returned - wait for it to complete before completing the selection
-                        result.then(function (response) {
-                            if (!response) {
-                                return;
-                            }
-                            if (response === true) {
-                                completeCallback(item);
-                            } else if (response) {
-                                completeCallback(response);
-                            }
-                        });
-                    } else if (result === true) {
-                        completeCallback(item);
-                    } else if (result) {
-                        completeCallback(result);
-                    }
-                } else {
+                var result = ctrl.beforeSelect(item);
+                if (angular.isFunction(result.then)) {
+                    // Promise returned - wait for it to complete before completing the selection
+                    result.then(function (response) {
+                        if (!response) {
+                            return;
+                        }
+                        if (response === true) {
+                            completeCallback(item);
+                        } else if (response) {
+                            completeCallback(response);
+                        }
+                    });
+                } else if (result === true) {
                     completeCallback(item);
+                } else if (result) {
+                    completeCallback(result);
                 }
             };
 
@@ -746,22 +1023,15 @@ uis.controller('uiSelectCtrl',
                     $scope.$broadcast('uis:close', skipFocusser);
                 }
 
-                var result = ctrl.onDropdownCallback($scope, {open: false});
-                if (angular.isDefined(result)) {
-                    if (angular.isFunction(result.then)) {
-                        // Promise returned - wait for it to complete before completing the selection
-                        result.then(function (result) {
-                            if (!result) {
-                                return;
-                            }
+                var result = ctrl.beforeDropdownClose();
+                if (angular.isFunction(result.then)) {
+                    // Promise returned - wait for it to complete before completing the selection
+                    result.then(function (result) {
+                        if (result === true) {
                             completeCallback();
-                        });
-                    } else if (result === true) {
-                        completeCallback();
-                    } else if (result) {
-                        completeCallback();
-                    }
-                } else {
+                        }
+                    });
+                } else if (result === true) {
                     completeCallback();
                 }
             };
@@ -851,7 +1121,7 @@ uis.controller('uiSelectCtrl',
             function _handleDropDownSelection(key) {
                 var processed = true;
                 switch (key) {
-                    case KEY.DOWN:
+                    case ctrl.KEY.DOWN:
                         if (!ctrl.open && ctrl.multiple) {
                             // In case its the search input in 'multiple' mode
                             ctrl.activate(false, true);
@@ -860,7 +1130,7 @@ uis.controller('uiSelectCtrl',
                             ctrl.activeIndex++;
                         }
                         break;
-                    case KEY.UP:
+                    case ctrl.KEY.UP:
                         if (!ctrl.open && ctrl.multiple) {
                             ctrl.activate(false, true);
                         } //In case its the search input in 'multiple' mode
@@ -868,21 +1138,23 @@ uis.controller('uiSelectCtrl',
                             ctrl.activeIndex--;
                         }
                         break;
-                    case KEY.TAB:
+                    case ctrl.KEY.TAB:
                         if (!ctrl.multiple || ctrl.open) {
                             ctrl.select(ctrl.items[ctrl.activeIndex], true);
                         }
                         break;
-                    case KEY.ENTER:
+                    case ctrl.KEY.ENTER:
                         if (ctrl.open) {
                             // Make sure at least one dropdown item is highlighted before adding
-                            ctrl.select(ctrl.items[ctrl.activeIndex]);
+                            if (ctrl.items[ctrl.activeIndex] !== undefined) {
+                                ctrl.select(ctrl.items[ctrl.activeIndex]);
+                            }
                         } else {
                             // In case its the search input in 'multiple' mode
                             ctrl.activate(false, true);
                         }
                         break;
-                    case KEY.ESC:
+                    case ctrl.KEY.ESC:
                         ctrl.close();
                         break;
                     default:
@@ -893,39 +1165,42 @@ uis.controller('uiSelectCtrl',
 
             // Bind to keyboard shortcuts
             ctrl.searchInput.on('keydown', function (e) {
-
                 var key = e.which;
 
-                // if(~[KEY.ESC,KEY.TAB].indexOf(key)){
-                //   //TODO: SEGURO?
-                //   ctrl.close();
-                // }
+                if (~[ctrl.KEY.ESC, ctrl.KEY.TAB].indexOf(key)) {
+                    // TODO: SEGURO?
+                    ctrl.close();
+                }
 
                 $scope.$apply(function () {
                     _handleDropDownSelection(key);
                 });
 
-                if (KEY.isVerticalMovement(key) && ctrl.items.length > 0) {
+                if (ctrl.KEY.isVerticalMovement(key) && ctrl.items.length > 0) {
                     _ensureHighlightVisible();
                 }
 
-                if (key === KEY.ENTER || key === KEY.ESC) {
+                if (key === ctrl.KEY.ENTER || key === ctrl.KEY.ESC) {
                     e.preventDefault();
                     e.stopPropagation();
                 }
+
+                // Let the users process the data
+                // TODO: Is this needed, or just let the user bind to the event themselves!
+//                ctrl.afterKeypress(e);
             });
 
             ctrl.searchInput.on('keyup', function (e) {
                 // return early with these keys
-                if (e.which === KEY.TAB || KEY.isControl(e) || KEY.isFunctionKey(e) || e.which === KEY.ESC ||
-                    KEY.isVerticalMovement(e.which)) {
+                if (e.which === ctrl.KEY.TAB || ctrl.KEY.isControl(e) || ctrl.KEY.isFunctionKey(e) ||
+                    e.which === ctrl.KEY.ESC ||
+                    ctrl.KEY.isVerticalMovement(e.which)) {
                     return;
                 }
 
-                if (ctrl.onKeypressCallback === undefined) {
-                    return;
-                }
-                ctrl.onKeypressCallback($scope, {event: e});
+                // Let the users process the data
+                // TODO: Is this needed, or just let the user bind to the event themselves!
+                ctrl.afterKeypress(e);
             });
 
             // See https://github.com/ivaynberg/select2/blob/3.4.6/select2.js#L1431
@@ -961,6 +1236,89 @@ uis.controller('uiSelectCtrl',
             $scope.$on('$destroy', function () {
                 ctrl.searchInput.off('keyup keydown blur paste');
             });
+
+            /**
+             * Keypress callback. Overridable.
+             * @param event the keypress event
+             */
+            /* jshint unused:false */
+            ctrl.afterKeypress = function (event) {
+            };
+
+            /**
+             * Method called before a selection is made. This can be overridden to allow
+             * the selection to be aborted, or a modified version of the selected item to be
+             * returned.
+             *
+             * Allowable responses are -:
+             * false: Abort the selection
+             * true: Complete selection with the selected object
+             * object: Complete the selection with the returned object
+             * promise: Wait for response - response from promise is as above
+             *
+             * @param item the item that has been selected
+             * @returns {*}
+             */
+            ctrl.beforeSelect = function (item) {
+                return true;
+            };
+
+            /**
+             * Method called after a selection is confirmed. This can be overridden to allow
+             * the application to be notified of a newly selected item.
+             * No return is required.
+             *
+             * @param item the item that has been selected
+             */
+            ctrl.afterSelect = function (item) {
+            };
+
+            /**
+             * Method called before an item is removed from the selected list. This can be overridden
+             * to allow the removal to be aborted
+             *
+             * Allowable responses are -:
+             * false: Abort the selection
+             * true: Complete selection with the selected object
+             * object: Complete the selection with the returned object
+             * promise: Wait for response - response from promise is as above
+             *
+             * @param item the item that has been selected
+             * @returns {*}
+             */
+            ctrl.beforeRemove = function (item) {
+                return true;
+            };
+
+            /**
+             * Method called after a item is removed. This can be overridden to allow
+             * the application to be notified of a removed item.
+             * No return is required.
+             *
+             * @param item the item that has been removed
+             */
+            ctrl.afterRemove = function (item) {
+            };
+
+            /**
+             * Method called before the dropdown is opened. This can be overridden to allow
+             * the application to process data before the dropdown is displayed.
+             * The method may return a promise, or true to allow the dropdown, or false to abort.
+             * @returns {boolean}
+             */
+            ctrl.beforeDropdownOpen = function () {
+                return true;
+            };
+
+            /**
+             * Method called before the dropdown is closed. This can be overridden to allow
+             * the application to prevent the dropdown from closing.
+             * The method may return a promise, or true to allow the dropdown to close, or false to abort.
+             * @returns {boolean}
+             */
+            ctrl.beforeDropdownClose = function () {
+                return true;
+            };
 
         }]);
 
@@ -1007,13 +1365,6 @@ uis.directive('uiSelect',
                                 return uiSelectConfig.closeOnSelect;
                             }
                         }();
-
-                        $select.onSelectCallback = $parse(attrs.onSelect);
-                        $select.onBeforeSelectCallback = $parse(attrs.onBeforeSelect);
-                        $select.onRemoveCallback = $parse(attrs.onRemove);
-                        $select.onBeforeRemoveCallback = $parse(attrs.onBeforeRemove);
-                        $select.onKeypressCallback = $parse(attrs.onKeypress);
-                        $select.onDropdownCallback = $parse(attrs.onDropdown);
 
                         // Limit the number of selections allowed
                         $select.limit = (angular.isDefined(attrs.limit)) ? parseInt(attrs.limit, 10) : undefined;
@@ -1081,10 +1432,9 @@ uis.directive('uiSelect',
                                 // Will lose focus only with certain targets
                                 var focusableControls = ['input', 'button', 'textarea'];
                                 // To check if target is other ui-select
-                                var targetScope = angular.element(e.target).scope();
+                                var targetController = angular.element(e.target).controller('uiSelect');
                                 // To check if target is other ui-select
-                                var skipFocusser = targetScope && targetScope.$select &&
-                                    targetScope.$select !== $select;
+                                var skipFocusser = targetController && targetController !== $select;
                                 // Check if target is input, button or textarea
                                 if (!skipFocusser) {
                                     skipFocusser = ~focusableControls.indexOf(e.target.tagName.toLowerCase());
@@ -1213,7 +1563,8 @@ uis.directive('uiSelect',
                                     var offsetDropdown = uisOffset(dropdown);
 
                                     // Determine if the direction of the dropdown needs to be changed.
-                                    if (offset.top + offset.height + offsetDropdown.height > $window.pageYOffset + $document[0].documentElement.clientHeight) {
+                                    if (offset.top + offset.height + offsetDropdown.height >
+                                        $window.pageYOffset + $document[0].documentElement.clientHeight) {
                                         element.addClass(directionUpClassName);
                                     }
 
@@ -1248,6 +1599,8 @@ uis.directive('uiSelectMatch', ['uiSelectConfig', function (uiSelectConfig) {
         },
         link: function (scope, element, attrs, $select) {
             $select.lockChoiceExpression = attrs.uiLockChoice;
+
+            // TODO: observe required?
             attrs.$observe('placeholder', function (placeholder) {
                 $select.placeholder = placeholder !== undefined ? placeholder : uiSelectConfig.placeholder;
             });
@@ -1257,6 +1610,7 @@ uis.directive('uiSelectMatch', ['uiSelectConfig', function (uiSelectConfig) {
                     (angular.isDefined(allow)) ? (allow === '') ? true : (allow.toLowerCase() === 'true') : false;
             }
 
+            // TODO: observe required?
             attrs.$observe('allowClear', setAllowClear);
             setAllowClear(attrs.allowClear);
 
@@ -1302,65 +1656,47 @@ uis.directive('uiSelectMultiple', ['uiSelectMinErr', '$timeout', function (uiSel
              * Then calls onRemove to notify the user the item has been removed
              */
             ctrl.removeChoice = function (index) {
+                // Get the removed choice
                 var removedChoice = $select.selected[index];
 
-                // if the choice is locked, can't remove it
+                // If the choice is locked, can't remove it
                 if (removedChoice._uiSelectChoiceLocked) {
                     return;
                 }
 
-                var locals = {};
-                locals[$select.parserResult.itemName] = removedChoice;
-
-                $select.selected.splice(index, 1);
-                ctrl.activeMatchIndex = -1;
-                $select.sizeSearchInput();
-
-                var callbackContext = {
-                    $item: removedChoice,
-                    $model: $select.parserResult.modelMapper($scope, locals)
-                };
-
                 // Give some time for scope propagation.
                 function completeCallback() {
+                    $select.selected.splice(index, 1);
+                    ctrl.activeMatchIndex = -1;
+                    $select.sizeSearchInput();
+
                     $timeout(function () {
-                        $select.onRemoveCallback($scope, callbackContext);
+                        $select.afterRemove(removedChoice);
                     });
 
                     ctrl.updateModel();
                 }
 
-                // If there's no onBeforeRemove callback, then just call the completeCallback
-                if(!angular.isDefined(ctrl.onBeforeRemoveCallback)) {
-                    completeCallback();
-                    return;
-                }
-
-                // Call the onBeforeRemove callback
+                // Call the beforeRemove callback
                 // Allowable responses are -:
-                // falsy: Abort the removal
-                // promise: Wait for response
+                // false: Abort the removal
                 // true: Complete removal
-                var result = ctrl.onBeforeRemoveCallback($scope, callbackContext);
-                if (angular.isDefined(result)) {
-                    if (angular.isFunction(result.then)) {
-                        // Promise returned - wait for it to complete before completing the selection
-                        result.then(function (result) {
-                            if (!result) {
-                                return;
-                            }
-                            completeCallback(result);
-                        });
-                    } else if (result === true) {
-                        completeCallback();
-                    }
-                } else {
+                // promise: Wait for response
+                var result = $select.beforeRemove(removedChoice);
+                if (angular.isFunction(result.then)) {
+                    // Promise returned - wait for it to complete before completing the selection
+                    result.then(function (result) {
+                        if (result === true) {
+                            completeCallback();
+                        }
+                    });
+                } else if (result === true) {
                     completeCallback();
                 }
             };
 
             ctrl.getPlaceholder = function () {
-                //Refactor single?
+                // Refactor single?
                 if ($select.selected && $select.selected.length) {
                     return;
                 }
@@ -1488,17 +1824,18 @@ uis.directive('uiSelectMultiple', ['uiSelectMinErr', '$timeout', function (uiSel
                 var key = e.which;
                 scope.$apply(function () {
                     var processed = false;
-                    if (KEY.isHorizontalMovement(key)) {
+                    if ($select.KEY.isHorizontalMovement(key)) {
                         processed = _handleMatchSelection(key);
                     }
-                    if (processed && key != KEY.TAB) {
-                        //TODO Check si el tab selecciona aun correctamente
-                        //Crear test
+                    if (processed && key != $select.KEY.TAB) {
+                        // TODO Check si el tab selecciona aun correctamente
+                        //Creat test
 //            e.preventDefault();
                         //          e.stopPropagation();
                     }
                 });
             });
+
             function _getCaretPosition(el) {
                 if (angular.isNumber(el.selectionStart)) {
                     return el.selectionStart;
@@ -1520,7 +1857,7 @@ uis.directive('uiSelectMultiple', ['uiSelectMinErr', '$timeout', function (uiSel
                     prev = $selectMultiple.activeMatchIndex - 1,
                     newIndex = curr;
 
-                if (caretPosition > 0 || ($select.search.length && key == KEY.RIGHT)) {
+                if (caretPosition > 0 || ($select.search.length && key == $select.KEY.RIGHT)) {
                     return false;
                 }
 
@@ -1528,7 +1865,7 @@ uis.directive('uiSelectMultiple', ['uiSelectMinErr', '$timeout', function (uiSel
 
                 function getNewActiveMatchIndex() {
                     switch (key) {
-                        case KEY.LEFT:
+                        case $select.KEY.LEFT:
                             // Select previous/first item
                             if (~$selectMultiple.activeMatchIndex) {
                                 return prev;
@@ -1538,7 +1875,7 @@ uis.directive('uiSelectMultiple', ['uiSelectMinErr', '$timeout', function (uiSel
                                 return last;
                             }
                             break;
-                        case KEY.RIGHT:
+                        case $select.KEY.RIGHT:
                             // Open drop-down
                             if (!~$selectMultiple.activeMatchIndex || curr === last) {
                                 $select.activate();
@@ -1549,7 +1886,7 @@ uis.directive('uiSelectMultiple', ['uiSelectMinErr', '$timeout', function (uiSel
                                 return next;
                             }
                             break;
-                        case KEY.BACKSPACE:
+                        case $select.KEY.BACKSPACE:
                             // Remove selected item and select previous/first
                             if (~$selectMultiple.activeMatchIndex) {
                                 $selectMultiple.removeChoice(curr);
@@ -1560,7 +1897,7 @@ uis.directive('uiSelectMultiple', ['uiSelectMinErr', '$timeout', function (uiSel
                                 return last;
                             }
                             break;
-                        case KEY.DELETE:
+                        case $select.KEY.DELETE:
                             // Remove selected item and select next item
                             if (~$selectMultiple.activeMatchIndex) {
                                 $selectMultiple.removeChoice($selectMultiple.activeMatchIndex);
@@ -1684,7 +2021,7 @@ uis.directive('uiSelectSingle', ['$timeout', '$compile', function ($timeout, $co
             });
 
             focusser.bind("keydown", function (e) {
-                if (e.which === KEY.BACKSPACE) {
+                if (e.which === $select.KEY.BACKSPACE) {
                     e.preventDefault();
                     e.stopPropagation();
                     $select.select(undefined);
@@ -1692,11 +2029,11 @@ uis.directive('uiSelectSingle', ['$timeout', '$compile', function ($timeout, $co
                     return;
                 }
 
-                if (e.which === KEY.TAB || KEY.isControl(e) || KEY.isFunctionKey(e) || e.which === KEY.ESC) {
+                if (e.which === $select.KEY.TAB || $select.KEY.isControl(e) || $select.KEY.isFunctionKey(e) || e.which === $select.KEY.ESC) {
                     return;
                 }
 
-                if (e.which == KEY.DOWN || e.which == KEY.UP || e.which == KEY.ENTER || e.which == KEY.SPACE) {
+                if (e.which == $select.KEY.DOWN || e.which == $select.KEY.UP || e.which == $select.KEY.ENTER || e.which == $select.KEY.SPACE) {
                     e.preventDefault();
                     e.stopPropagation();
                     $select.activate();
@@ -1706,8 +2043,8 @@ uis.directive('uiSelectSingle', ['$timeout', '$compile', function ($timeout, $co
             });
 
             focusser.bind("keyup input", function (e) {
-                if (e.which === KEY.TAB || KEY.isControl(e) || KEY.isFunctionKey(e) || e.which === KEY.ESC ||
-                    e.which == KEY.ENTER || e.which === KEY.BACKSPACE) {
+                if (e.which === $select.KEY.TAB || $select.KEY.isControl(e) || $select.KEY.isFunctionKey(e) || e.which === $select.KEY.ESC ||
+                    e.which == $select.KEY.ENTER || e.which === $select.KEY.BACKSPACE) {
                     return;
                 }
 

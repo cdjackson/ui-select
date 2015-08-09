@@ -33,65 +33,47 @@ uis.directive('uiSelectMultiple', ['uiSelectMinErr', '$timeout', function (uiSel
              * Then calls onRemove to notify the user the item has been removed
              */
             ctrl.removeChoice = function (index) {
+                // Get the removed choice
                 var removedChoice = $select.selected[index];
 
-                // if the choice is locked, can't remove it
+                // If the choice is locked, can't remove it
                 if (removedChoice._uiSelectChoiceLocked) {
                     return;
                 }
 
-                var locals = {};
-                locals[$select.parserResult.itemName] = removedChoice;
-
-                $select.selected.splice(index, 1);
-                ctrl.activeMatchIndex = -1;
-                $select.sizeSearchInput();
-
-                var callbackContext = {
-                    $item: removedChoice,
-                    $model: $select.parserResult.modelMapper($scope, locals)
-                };
-
                 // Give some time for scope propagation.
                 function completeCallback() {
+                    $select.selected.splice(index, 1);
+                    ctrl.activeMatchIndex = -1;
+                    $select.sizeSearchInput();
+
                     $timeout(function () {
-                        $select.onRemoveCallback($scope, callbackContext);
+                        $select.afterRemove(removedChoice);
                     });
 
                     ctrl.updateModel();
                 }
 
-                // If there's no onBeforeRemove callback, then just call the completeCallback
-                if(!angular.isDefined(ctrl.onBeforeRemoveCallback)) {
-                    completeCallback();
-                    return;
-                }
-
-                // Call the onBeforeRemove callback
+                // Call the beforeRemove callback
                 // Allowable responses are -:
-                // falsy: Abort the removal
-                // promise: Wait for response
+                // false: Abort the removal
                 // true: Complete removal
-                var result = ctrl.onBeforeRemoveCallback($scope, callbackContext);
-                if (angular.isDefined(result)) {
-                    if (angular.isFunction(result.then)) {
-                        // Promise returned - wait for it to complete before completing the selection
-                        result.then(function (result) {
-                            if (!result) {
-                                return;
-                            }
-                            completeCallback(result);
-                        });
-                    } else if (result === true) {
-                        completeCallback();
-                    }
-                } else {
+                // promise: Wait for response
+                var result = $select.beforeRemove(removedChoice);
+                if (angular.isFunction(result.then)) {
+                    // Promise returned - wait for it to complete before completing the selection
+                    result.then(function (result) {
+                        if (result === true) {
+                            completeCallback();
+                        }
+                    });
+                } else if (result === true) {
                     completeCallback();
                 }
             };
 
             ctrl.getPlaceholder = function () {
-                //Refactor single?
+                // Refactor single?
                 if ($select.selected && $select.selected.length) {
                     return;
                 }
@@ -219,17 +201,18 @@ uis.directive('uiSelectMultiple', ['uiSelectMinErr', '$timeout', function (uiSel
                 var key = e.which;
                 scope.$apply(function () {
                     var processed = false;
-                    if (KEY.isHorizontalMovement(key)) {
+                    if ($select.KEY.isHorizontalMovement(key)) {
                         processed = _handleMatchSelection(key);
                     }
-                    if (processed && key != KEY.TAB) {
-                        //TODO Check si el tab selecciona aun correctamente
-                        //Crear test
+                    if (processed && key != $select.KEY.TAB) {
+                        // TODO Check si el tab selecciona aun correctamente
+                        //Creat test
 //            e.preventDefault();
                         //          e.stopPropagation();
                     }
                 });
             });
+
             function _getCaretPosition(el) {
                 if (angular.isNumber(el.selectionStart)) {
                     return el.selectionStart;
@@ -251,7 +234,7 @@ uis.directive('uiSelectMultiple', ['uiSelectMinErr', '$timeout', function (uiSel
                     prev = $selectMultiple.activeMatchIndex - 1,
                     newIndex = curr;
 
-                if (caretPosition > 0 || ($select.search.length && key == KEY.RIGHT)) {
+                if (caretPosition > 0 || ($select.search.length && key == $select.KEY.RIGHT)) {
                     return false;
                 }
 
@@ -259,7 +242,7 @@ uis.directive('uiSelectMultiple', ['uiSelectMinErr', '$timeout', function (uiSel
 
                 function getNewActiveMatchIndex() {
                     switch (key) {
-                        case KEY.LEFT:
+                        case $select.KEY.LEFT:
                             // Select previous/first item
                             if (~$selectMultiple.activeMatchIndex) {
                                 return prev;
@@ -269,7 +252,7 @@ uis.directive('uiSelectMultiple', ['uiSelectMinErr', '$timeout', function (uiSel
                                 return last;
                             }
                             break;
-                        case KEY.RIGHT:
+                        case $select.KEY.RIGHT:
                             // Open drop-down
                             if (!~$selectMultiple.activeMatchIndex || curr === last) {
                                 $select.activate();
@@ -280,7 +263,7 @@ uis.directive('uiSelectMultiple', ['uiSelectMinErr', '$timeout', function (uiSel
                                 return next;
                             }
                             break;
-                        case KEY.BACKSPACE:
+                        case $select.KEY.BACKSPACE:
                             // Remove selected item and select previous/first
                             if (~$selectMultiple.activeMatchIndex) {
                                 $selectMultiple.removeChoice(curr);
@@ -291,7 +274,7 @@ uis.directive('uiSelectMultiple', ['uiSelectMinErr', '$timeout', function (uiSel
                                 return last;
                             }
                             break;
-                        case KEY.DELETE:
+                        case $select.KEY.DELETE:
                             // Remove selected item and select next item
                             if (~$selectMultiple.activeMatchIndex) {
                                 $selectMultiple.removeChoice($selectMultiple.activeMatchIndex);

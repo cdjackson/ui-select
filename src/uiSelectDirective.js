@@ -42,13 +42,6 @@ uis.directive('uiSelect',
                             }
                         }();
 
-                        $select.onSelectCallback = $parse(attrs.onSelect);
-                        $select.onBeforeSelectCallback = $parse(attrs.onBeforeSelect);
-                        $select.onRemoveCallback = $parse(attrs.onRemove);
-                        $select.onBeforeRemoveCallback = $parse(attrs.onBeforeRemove);
-                        $select.onKeypressCallback = $parse(attrs.onKeypress);
-                        $select.onDropdownCallback = $parse(attrs.onDropdown);
-
                         // Limit the number of selections allowed
                         $select.limit = (angular.isDefined(attrs.limit)) ? parseInt(attrs.limit, 10) : undefined;
 
@@ -246,7 +239,8 @@ uis.directive('uiSelect',
                                     var offsetDropdown = uisOffset(dropdown);
 
                                     // Determine if the direction of the dropdown needs to be changed.
-                                    if (offset.top + offset.height + offsetDropdown.height > $window.pageYOffset + $document[0].documentElement.clientHeight) {
+                                    if (offset.top + offset.height + offsetDropdown.height >
+                                        $window.pageYOffset + $document[0].documentElement.clientHeight) {
                                         element.addClass(directionUpClassName);
                                     }
 

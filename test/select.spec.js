@@ -907,12 +907,8 @@ describe('ui-select tests', function () {
 
     it('should invoke select callback on select', function () {
 
-        scope.onSelectFn = function ($item, $model, $label) {
-            scope.$item = $item;
-            scope.$model = $model;
-        };
         var el = compileTemplate(
-            '<ui-select on-select="onSelectFn($item, $model)" ng-model="selection.selected"> \
+            '<ui-select ng-model="selection.selected"> \
               <ui-select-match placeholder="Pick one...">{{$select.selected.name}}</ui-select-match> \
               <ui-select-choices repeat="person.name as person in people | filter: $select.search"> \
                 <div ng-bind-html="person.name | highlight: $select.search"></div> \
@@ -920,6 +916,10 @@ describe('ui-select tests', function () {
               </ui-select-choices> \
             </ui-select>'
         );
+
+        el.scope().$select.afterSelect = function ($item) {
+            scope.$item = $item;
+        };
 
         expect(scope.$item).toBeFalsy();
         expect(scope.$model).toBeFalsy();
@@ -927,24 +927,35 @@ describe('ui-select tests', function () {
         clickItem(el, 'Samantha');
         $timeout.flush();
 
-
         expect(scope.selection.selected).toBe('Samantha');
 
         expect(scope.$item).toEqual(scope.people[5]);
-        expect(scope.$model).toEqual('Samantha');
 
+    });
+
+    it('should highlight matched value correctly when it is a number', function () {
+        var el = compileTemplate(
+            '<ui-select ng-model="selection.selected"> \
+             <ui-select-match placeholder="Pick one...">{{$select.selected.age}}</ui-select-match> \
+             <ui-select-choices repeat="person.age as person in people | filter: $select.search"> \
+             <div ng-bind-html="person.age | highlight: $select.search"></div> \
+             </ui-select-choices> \
+             </ui-select>'
+        );
+        openDropdown(el);
+        setSearchText(el, '43');
+
+        var choices = $(el).find('.ui-select-choices-row');
+        expect(choices.length).toEqual(1);
+
+        clickItem(el, '43');
+        expect(scope.selection.selected).toBe(43);
     });
 
     it('should invoke before-select callback before select callback synchronously', function () {
         var order = [];
-        scope.onBeforeSelectFn = function ($item, $model, $label) {
-            order.push('onBeforeSelectFn');
-        };
-        scope.onSelectFn = function ($item, $model, $label) {
-            order.push('onSelectFn');
-        };
         var el = compileTemplate(
-            '<ui-select on-before-select="onBeforeSelectFn($item, $model)" on-select="onSelectFn($item, $model)" ng-model="selection.selected"> \
+            '<ui-select ng-model="selection.selected"> \
               <ui-select-match placeholder="Pick one...">{{$select.selected.name}}</ui-select-match> \
               <ui-select-choices repeat="person.name as person in people | filter: $select.search"> \
                 <div ng-bind-html="person.name | highlight: $select.search"></div> \
@@ -953,29 +964,25 @@ describe('ui-select tests', function () {
             </ui-select>'
         );
 
+        el.scope().$select.beforeSelect = function ($item) {
+            order.push('beforeSelectFn');
+            return true;
+        };
+        el.scope().$select.afterSelect = function ($item) {
+            order.push('afterSelectFn');
+        };
+
         clickItem(el, 'Samantha');
         $timeout.flush();
 
-        expect(order[0]).toEqual('onBeforeSelectFn');
-        expect(order[1]).toEqual('onSelectFn');
-
+        expect(order[0]).toEqual('beforeSelectFn');
+        expect(order[1]).toEqual('afterSelectFn');
     });
 
     it('should invoke before-select callback before select callback when promised', inject(function ($q) {
         var order = [];
-        scope.onBeforeSelectFn = function ($item, $model, $label) {
-            var deferred = $q.defer();
-            $timeout(function () {
-                order.push('onBeforeSelectFn');
-                deferred.resolve(order);
-            });
-            return deferred.promise;
-        };
-        scope.onSelectFn = function ($item, $model, $label) {
-            order.push('onSelectFn');
-        };
         var el = compileTemplate(
-            '<ui-select on-before-select="onBeforeSelectFn($item, $model)" on-select="onSelectFn($item, $model)" ng-model="selection.selected"> \
+            '<ui-select ng-model="selection.selected"> \
               <ui-select-match placeholder="Pick one...">{{$select.selected.name}}</ui-select-match> \
               <ui-select-choices repeat="person.name as person in people | filter: $select.search"> \
                 <div ng-bind-html="person.name | highlight: $select.search"></div> \
@@ -984,37 +991,49 @@ describe('ui-select tests', function () {
             </ui-select>'
         );
 
+        el.scope().$select.beforeSelect = function ($item) {
+            var deferred = $q.defer();
+            $timeout(function () {
+                order.push('beforeSelectFn');
+                deferred.resolve(order);
+            });
+            return deferred.promise;
+        };
+        el.scope().$select.afterSelect = function ($item) {
+            order.push('afterSelectFn');
+        };
+
         clickItem(el, 'Samantha');
         $timeout.flush();
 
-        expect(order[0]).toEqual('onBeforeSelectFn');
-        expect(order[1]).toEqual('onSelectFn');
+        expect(order[0]).toEqual('beforeSelectFn');
+        expect(order[1]).toEqual('afterSelectFn');
     }));
 
     it('should complete on-select if before-select callback promise is resolved', inject(function ($q) {
-        scope.onBeforeSelectFn = function ($item, $model, $label) {
+        var el = compileTemplate(
+            '<ui-select  ng-model="selection.selected"> \
+              <ui-select-match placeholder="Pick one...">{{$select.selected.name}}</ui-select-match> \
+              <ui-select-choices repeat="person.name as person in people | filter: $select.search"> \
+                <div ng-bind-html="person.name | highlight: $select.search"></div> \
+                <div ng-bind-html="person.email | highlight: $select.search"></div> \
+              </ui-select-choices> \
+            </ui-select>'
+        );
+
+        el.scope().$select.beforeSelect = function ($item) {
             var deferred = $q.defer();
             $timeout(function () {
                 deferred.resolve(true);
             });
             return deferred.promise;
         };
-        scope.onSelectFn = function ($item, $model, $label) {
+        el.scope().$select.afterSelect = function ($item) {
             scope.$item = $item;
-            scope.$model = $model;
         };
-        var el = compileTemplate(
-            '<ui-select on-before-select="onBeforeSelectFn($item, $model)" on-select="onSelectFn($item, $model)" ng-model="selection.selected"> \
-              <ui-select-match placeholder="Pick one...">{{$select.selected.name}}</ui-select-match> \
-              <ui-select-choices repeat="person.name as person in people | filter: $select.search"> \
-                <div ng-bind-html="person.name | highlight: $select.search"></div> \
-                <div ng-bind-html="person.email | highlight: $select.search"></div> \
-              </ui-select-choices> \
-            </ui-select>'
-        );
 
         expect(scope.$item).toBeFalsy();
-        expect(scope.$model).toBeFalsy();
+//        expect(scope.$model).toBeFalsy();
 
         clickItem(el, 'Samantha');
         $timeout.flush();
@@ -1022,19 +1041,12 @@ describe('ui-select tests', function () {
         expect(scope.selection.selected).toBe('Samantha');
 
         expect(scope.$item).toEqual(scope.people[5]);
-        expect(scope.$model).toEqual('Samantha');
+//        expect(scope.$model).toEqual('Samantha');
     }));
 
     it('should abort selection if before-select callback returns falsy', function () {
-        scope.onBeforeSelectFn = function ($item, $model, $label) {
-            return false;
-        };
-        scope.onSelectFn = function ($item, $model, $label) {
-            scope.$item = $item;
-            scope.$model = $model;
-        };
         var el = compileTemplate(
-            '<ui-select on-before-select="onBeforeSelectFn($item, $model)" on-select="onSelectFn($item, $model)" ng-model="selection.selected"> \
+            '<ui-select ng-model="selection.selected"> \
               <ui-select-match placeholder="Pick one...">{{$select.selected.name}}</ui-select-match> \
               <ui-select-choices repeat="person.name as person in people | filter: $select.search"> \
                 <div ng-bind-html="person.name | highlight: $select.search"></div> \
@@ -1043,57 +1055,59 @@ describe('ui-select tests', function () {
             </ui-select>'
         );
 
+        el.scope().$select.beforeSelect = function ($item) {
+            return false;
+        };
+        el.scope().$select.afterSelect = function ($item) {
+            scope.$item = $item;
+        };
+
         expect(scope.$item).toBeFalsy();
-        expect(scope.$model).toBeFalsy();
+//        expect(scope.$model).toBeFalsy();
 
         clickItem(el, 'Samantha');
         $timeout.flush();
 
         expect(scope.$item).toBeFalsy();
-        expect(scope.$model).toBeFalsy();
+//        expect(scope.$model).toBeFalsy();
     });
 
     it('should abort selection if before-select callback rejects promise', inject(function ($q) {
-        scope.onBeforeSelectFn = function ($item, $model, $label) {
+        var el = compileTemplate(
+            '<ui-select ng-model="selection.selected"> \
+              <ui-select-match placeholder="Pick one...">{{$select.selected.name}}</ui-select-match> \
+              <ui-select-choices repeat="person.name as person in people | filter: $select.search"> \
+                <div ng-bind-html="person.name | highlight: $select.search"></div> \
+                <div ng-bind-html="person.email | highlight: $select.search"></div> \
+              </ui-select-choices> \
+            </ui-select>'
+        );
+
+        el.scope().$select.beforeSelect = function ($item) {
             var deferred = $q.defer();
             $timeout(function () {
                 deferred.reject();
             });
             return deferred.promise;
         };
-        scope.onSelectFn = function ($item, $model, $label) {
+        el.scope().$select.afterSelect = function ($item) {
             scope.$item = $item;
-            scope.$model = $model;
         };
-        var el = compileTemplate(
-            '<ui-select on-before-select="onBeforeSelectFn($item, $model)" on-select="onSelectFn($item, $model)" ng-model="selection.selected"> \
-              <ui-select-match placeholder="Pick one...">{{$select.selected.name}}</ui-select-match> \
-              <ui-select-choices repeat="person.name as person in people | filter: $select.search"> \
-                <div ng-bind-html="person.name | highlight: $select.search"></div> \
-                <div ng-bind-html="person.email | highlight: $select.search"></div> \
-              </ui-select-choices> \
-            </ui-select>'
-        );
 
         expect(scope.$item).toBeFalsy();
-        expect(scope.$model).toBeFalsy();
 
         clickItem(el, 'Samantha');
         $timeout.flush();
 
         expect(scope.$item).toBeFalsy();
-        expect(scope.$model).toBeFalsy();
 
     }));
 
     it('should keep reference to current selection and incoming selection within before-select callback', function () {
         var currentSelection, incomingSelection;
-        scope.onBeforeSelectFn = function ($item, $model, $label) {
-            incomingSelection = $item;
-            currentSelection = scope.selection.selected;
-        };
+
         var el = compileTemplate(
-            '<ui-select on-before-select="onBeforeSelectFn($item, $model)" ng-model="selection.selected"> \
+            '<ui-select ng-model="selection.selected"> \
               <ui-select-match placeholder="Pick one...">{{$select.selected.name}}</ui-select-match> \
               <ui-select-choices repeat="person.name as person in people | filter: $select.search"> \
                 <div ng-bind-html="person.name | highlight: $select.search"></div> \
@@ -1101,6 +1115,12 @@ describe('ui-select tests', function () {
               </ui-select-choices> \
             </ui-select>'
         );
+
+        el.scope().$select.beforeSelect = function ($item) {
+            incomingSelection = $item;
+            currentSelection = scope.selection.selected;
+            return true;
+        };
 
         clickItem(el, 'Samantha');
         $timeout.flush();
@@ -1116,15 +1136,14 @@ describe('ui-select tests', function () {
 
     });
 
-    it('should invoke hover callback', function () {
-
+    it('should invoke highlight callback', function () {
         var highlighted;
         scope.onHighlightFn = function ($item) {
             highlighted = $item;
         };
 
         var el = compileTemplate(
-            '<ui-select on-select="onSelectFn($item, $model)" ng-model="selection.selected"> \
+            '<ui-select ng-model="selection.selected"> \
               <ui-select-match placeholder="Pick one...">{{$select.selected.name}}</ui-select-match> \
               <ui-select-choices on-highlight="onHighlightFn(person)" repeat="person.name as person in people | filter: $select.search"> \
                 <div ng-bind-html="person.name | highlight: $select.search"></div> \
@@ -1146,14 +1165,8 @@ describe('ui-select tests', function () {
     });
 
     it('should set $item & $model correctly when invoking callback on select and no single prop. binding', function () {
-
-        scope.onSelectFn = function ($item, $model, $label) {
-            scope.$item = $item;
-            scope.$model = $model;
-        };
-
         var el = compileTemplate(
-            '<ui-select on-select="onSelectFn($item, $model)" ng-model="selection.selected"> \
+            '<ui-select  ng-model="selection.selected"> \
               <ui-select-match placeholder="Pick one...">{{$select.selected.name}}</ui-select-match> \
               <ui-select-choices repeat="person in people | filter: $select.search"> \
                 <div ng-bind-html="person.name | highlight: $select.search"></div> \
@@ -1162,22 +1175,20 @@ describe('ui-select tests', function () {
             </ui-select>'
         );
 
+        el.scope().$select.beforeSelect = function ($item) {
+            scope.$item = $item;
+            return true;
+        };
+
         expect(scope.$item).toBeFalsy();
-        expect(scope.$model).toBeFalsy();
 
         clickItem(el, 'Samantha');
-        expect(scope.$item).toEqual(scope.$model);
-
+        expect(scope.$item).toEqual(scope.selection.selected);
     });
 
     it('should invoke remove callback on remove', function () {
-        scope.onRemoveFn = function ($item, $model, $label) {
-            scope.$item = $item;
-            scope.$model = $model;
-        };
-
         var el = compileTemplate(
-            '<ui-select multiple on-remove="onRemoveFn($item, $model)" ng-model="selection.selected"> \
+            '<ui-select multiple ng-model="selection.selected"> \
               <ui-select-match placeholder="Pick one...">{{$select.selected.name}}</ui-select-match> \
               <ui-select-choices repeat="person.name as person in people | filter: $select.search"> \
                 <div ng-bind-html="person.name" | highlight: $select.search"></div> \
@@ -1186,8 +1197,11 @@ describe('ui-select tests', function () {
             </ui-select>'
         );
 
+        el.scope().$select.afterRemove = function ($item) {
+            scope.$item = $item;
+        };
+
         expect(scope.$item).toBeFalsy();
-        expect(scope.$model).toBeFalsy();
 
         clickItem(el, 'Samantha');
         clickItem(el, 'Adrian');
@@ -1195,18 +1209,12 @@ describe('ui-select tests', function () {
         $timeout.flush();
 
         expect(scope.$item).toBe(scope.people[5]);
-        expect(scope.$model).toBe('Samantha');
+        expect(scope.selection.selected).toBe('Samantha');
     });
 
     it('should set $item & $model correctly when invoking callback on remove and no single prop. binding', function () {
-
-        scope.onRemoveFn = function ($item, $model, $label) {
-            scope.$item = $item;
-            scope.$model = $model;
-        };
-
         var el = compileTemplate(
-            '<ui-select multiple on-remove="onRemoveFn($item, $model)" ng-model="selection.selected"> \
+            '<ui-select multiple ng-model="selection.selected"> \
               <ui-select-match placeholder="Pick one...">{{$select.selected.name}}</ui-select-match> \
               <ui-select-choices repeat="person in people | filter: $select.search"> \
                 <div ng-bind-html="person.name" | highlight: $select.search"></div> \
@@ -1215,8 +1223,11 @@ describe('ui-select tests', function () {
             </ui-select>'
         );
 
+        el.scope().$select.afterRemove = function ($item) {
+            scope.$item = $item;
+        };
+
         expect(scope.$item).toBeFalsy();
-        expect(scope.$model).toBeFalsy();
 
         clickItem(el, 'Samantha');
         clickItem(el, 'Adrian');
@@ -1224,7 +1235,7 @@ describe('ui-select tests', function () {
         $timeout.flush();
 
         expect(scope.$item).toBe(scope.people[5]);
-        expect(scope.$model).toBe(scope.$item);
+        expect(scope.selection.selected).toBe(scope.$item);
     });
 
     it('should append/transclude content (with correct scope) that users add at <match> tag', function () {
@@ -1247,10 +1258,9 @@ describe('ui-select tests', function () {
         clickItem(el, 'Wladimir');
         expect(getMatchLabel(el).trim()).not.toEqual('Wladimir');
         expect(getMatchLabel(el).trim()).toEqual('WLADIMIR');
-
     });
-    it('should append/transclude content (with correct scope) that users add at <choices> tag', function () {
 
+    it('should append/transclude content (with correct scope) that users add at <choices> tag', function () {
         var el = compileTemplate(
             '<ui-select ng-model="selection.selected"> \
               <ui-select-match> \
@@ -1266,12 +1276,9 @@ describe('ui-select tests', function () {
 
         openDropdown(el);
         expect($(el).find('.only-once').length).toEqual(1);
-
-
     });
 
     it('should format view value correctly when using single property binding and refresh function', function () {
-
         var el = compileTemplate(
             '<ui-select ng-model="selection.selected"> \
               <ui-select-match>{{$select.selected.name}}</ui-select-match> \
@@ -1302,7 +1309,6 @@ describe('ui-select tests', function () {
 
         setSearchText(el, 'o');
         expect(getMatchLabel(el)).toBe('Samantha');
-
     });
 
     describe('search-enabled option', function () {
@@ -1878,7 +1884,6 @@ describe('ui-select tests', function () {
         });
 
         it('should change viewvalue only once when updating modelvalue', function () {
-
             scope.selection.selectedMultiple = ['wladimir@email.com', 'samantha@email.com'];
 
             var el = compileTemplate(
@@ -1900,12 +1905,10 @@ describe('ui-select tests', function () {
             clickItem(el, 'Nicole');
 
             expect(scope.counter).toBe(1);
-
         });
 
 
         it('should run $formatters when changing model directly', function () {
-
             scope.selection.selectedMultiple = ['wladimir@email.com', 'samantha@email.com'];
 
             var el = compileTemplate(
@@ -1932,7 +1935,6 @@ describe('ui-select tests', function () {
         });
 
         it('should support multiple="multiple" attribute', function () {
-
             var el = compileTemplate(
                 '<ui-select multiple="multiple" ng-model="selection.selectedMultiple" theme="bootstrap" style="width: 800px;"> \
                     <ui-select-match placeholder="Pick one...">{{$item.name}} &lt;{{$item.email}}&gt;</ui-select-match> \
@@ -1948,7 +1950,9 @@ describe('ui-select tests', function () {
         });
 
         it('should allow paste tag from clipboard', function () {
-            scope.taggingFunc = function (name) {
+            var el = createUiSelectMultiple({taggingTokens: ",|ENTER"});
+
+            el.scope().$select.beforeTagging = function (item) {
                 return {
                     name: name,
                     email: name + '@email.com',
@@ -1957,7 +1961,6 @@ describe('ui-select tests', function () {
                 };
             };
 
-            var el = createUiSelectMultiple({tagging: 'taggingFunc', taggingTokens: ",|ENTER"});
             clickMatch(el);
             triggerPaste(el.find('input'), 'tag1');
 
@@ -1965,7 +1968,9 @@ describe('ui-select tests', function () {
         });
 
         it('should allow paste multiple tags', function () {
-            scope.taggingFunc = function (name) {
+            var el = createUiSelectMultiple({taggingTokens: ",|ENTER"});
+
+            el.scope().$select.beforeTagging = function (item) {
                 return {
                     name: name,
                     email: name + '@email.com',
@@ -1973,8 +1978,6 @@ describe('ui-select tests', function () {
                     age: 12
                 };
             };
-
-            var el = createUiSelectMultiple({tagging: 'taggingFunc', taggingTokens: ",|ENTER"});
             clickMatch(el);
             triggerPaste(el.find('input'), ',tag1,tag2,tag3,,tag5,');
 

@@ -96,6 +96,20 @@ gulp.task('scripts', ['clean'], function () {
         );
     };
 
+    var buildTagging = function () {
+        return gulp.src(['src/addons/uiSelectTaggingDirective.js'])
+            .pipe(plumber({
+                errorHandler: handleError
+            }))
+            .pipe(concat('select.tagging.js'))
+            .pipe(header('(function () { \n"use strict";\n'))
+            .pipe(footer('\n}());'))
+            .pipe(jshint())
+            .pipe(jshint.reporter('jshint-stylish'))
+            .pipe(jshint.reporter('fail')
+        );
+    };
+
     es.merge(buildTplBootstrap(), buildTplSelect2(), buildTplSelectize())
         .pipe(plumber({
             errorHandler: handleError
@@ -173,7 +187,20 @@ gulp.task('scripts', ['clean'], function () {
         .pipe(rename({ext: '.sort.min.js'}))
         .pipe(gulp.dest('dist'));
 
-    return es.merge(buildLib(), buildSort(), buildTplBootstrap(), buildTplSelect2(), buildTplSelectize())
+    es.merge(buildTagging())
+        .pipe(plumber({
+            errorHandler: handleError
+        }))
+        .pipe(concat('select.sort.js'))
+        .pipe(header(config.banner, {
+            timestamp: (new Date()).toISOString(), pkg: config.pkg
+        }))
+        .pipe(gulp.dest('dist'))
+        .pipe(uglify({preserveComments: 'some'}))
+        .pipe(rename({ext: '.sort.min.js'}))
+        .pipe(gulp.dest('dist'));
+
+    return es.merge(buildLib(), buildTagging(), buildSort(), buildTplBootstrap(), buildTplSelect2(), buildTplSelectize())
         .pipe(plumber({
             errorHandler: handleError
         }))

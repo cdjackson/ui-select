@@ -1,7 +1,7 @@
 /*!
  * ui-select
  * http://github.com/angular-ui/ui-select
- * Version: 0.12.1 - 2015-08-06T13:28:34.975Z
+ * Version: 0.12.1 - 2015-08-09T18:09:19.204Z
  * License: MIT
  */
 
@@ -146,6 +146,88 @@ angular.module('ui.select.sort', ['ui.select'])
                     element.off('dragover', dragOverHandler);
                     element.off('drop', dropHandler);
                 });
+            }
+        };
+    }]);
+
+}());ted))) {
+                            // if there is a tag from prev iteration, strip it / queue the change
+                            // and return early
+                            if (hasTag) {
+                                items = stashArr;
+                                scope.$evalAsync(function () {
+                                    $select.activeIndex = 0;
+                                    $select.items = items;
+                                });
+                            }
+                            return;
+                        }
+                        if (_findCaseInsensitiveDupe(stashArr)) {
+                            // If there is a tag from prev iteration, strip it
+                            if (hasTag) {
+                                $select.items = stashArr.slice(1, stashArr.length);
+                            }
+                            return;
+                        }
+//                        }
+                        if (hasTag) {
+                            dupeIndex = _findApproxDupe($select.selected, newItem);
+                        }
+                        // dupe found, shave the first item
+                        if (dupeIndex > -1) {
+                            items = items.slice(dupeIndex + 1, items.length - 1);
+                        } else {
+                            items = [];
+                            items.push(newItem);
+                            items = items.concat(stashArr);
+                        }
+                        scope.$evalAsync(function () {
+                            $select.activeIndex = 0;
+                            $select.items = items;
+                        });
+                    }
+                };
+
+
+                function _findCaseInsensitiveDupe(arr) {
+                    if (arr === undefined || $select.search === undefined) {
+                        return false;
+                    }
+                    var hasDupe = arr.filter(function (origItem) {
+                            if ($select.search.toUpperCase() === undefined || origItem === undefined) {
+                                return false;
+                            }
+                            return origItem.toUpperCase() === $select.search.toUpperCase();
+                        }).length > 0;
+
+                    return hasDupe;
+                }
+
+                function _findApproxDupe(haystack, needle) {
+                    var dupeIndex = -1;
+                    if (angular.isArray(haystack)) {
+                        var tempArr = angular.copy(haystack);
+                        for (var i = 0; i < tempArr.length; i++) {
+                            // handle the simple string version of tagging
+//                            if ($select.tagging.fct === undefined) {
+                            // search the array for the match
+                            if (tempArr[i] + ' ' + $select.taggingLabel === needle) {
+                                dupeIndex = i;
+                            }
+                            // handle the object tagging implementation
+                            /*                            } else {
+                             var mockObj = tempArr[i];
+                             mockObj.isTag = true;
+                             if (angular.equals(mockObj, needle)) {
+                             dupeIndex = i;
+                             }
+                             }*/
+                        }
+                    }
+                    return dupeIndex;
+                }
+
+
             }
         };
     }]);

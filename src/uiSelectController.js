@@ -7,7 +7,6 @@
 uis.controller('uiSelectCtrl',
     ['$scope', '$element', '$timeout', '$filter', '$q', 'uisRepeatParser', 'uiSelectMinErr', 'uiSelectConfig',
         function ($scope, $element, $timeout, $filter, $q, RepeatParser, uiSelectMinErr, uiSelectConfig) {
-
             var ctrl = this;
 
             var EMPTY_SEARCH = '';
@@ -16,23 +15,23 @@ uis.controller('uiSelectCtrl',
             ctrl.searchEnabled = uiSelectConfig.searchEnabled;
             ctrl.sortable = uiSelectConfig.sortable;
 
-            ctrl.removeSelected = false; // If selected item(s) should be removed from dropdown list
-            ctrl.closeOnSelect = true; // Initialized inside uiSelect directive link function
+            ctrl.removeSelected = false;                // If selected item(s) should be removed from dropdown list
+            ctrl.closeOnSelect = true;                  // Initialized inside uiSelect directive link function
             ctrl.search = EMPTY_SEARCH;
 
-            ctrl.activeIndex = 0; // Dropdown of choices
-            ctrl.items = []; // All available choices
+            ctrl.activeIndex = 0;                       // Dropdown of choices
+            ctrl.items = [];                            // All available choices
 
             ctrl.open = false;
             ctrl.focus = false;
             ctrl.disabled = false;
             ctrl.selected = undefined;
 
-            ctrl.focusser = undefined; // Reference to input element used to handle focus events
+            ctrl.focusser = undefined;                  // Reference to input element used to handle focus events
             ctrl.resetSearchInput = true;
-            ctrl.multiple = undefined; // Initialized inside uiSelect directive link function
-            ctrl.disableChoiceExpression = undefined; // Initialized inside uiSelectChoices directive link function
-            ctrl.lockChoiceExpression = undefined; // Initialized inside uiSelectMatch directive link function
+            ctrl.multiple = undefined;                  // Initialized inside uiSelect directive link function
+            ctrl.disableChoiceExpression = undefined;   // Initialized inside uiSelectChoices directive link function
+            ctrl.lockChoiceExpression = undefined;      // Initialized inside uiSelectMatch directive link function
             ctrl.clickTriggeredSelect = false;
             ctrl.$filter = $filter;
 
@@ -41,6 +40,158 @@ uis.controller('uiSelectCtrl',
                 throw uiSelectMinErr('searchInput', "Expected 1 input.ui-select-search but got '{0}'.",
                     ctrl.searchInput.length);
             }
+
+            // TODO: Maybe make these methods in KEY directly in the controller?
+            ctrl.KEY = {
+                TAB: 9,
+                ENTER: 13,
+                ESC: 27,
+                SPACE: 32,
+                LEFT: 37,
+                UP: 38,
+                RIGHT: 39,
+                DOWN: 40,
+                SHIFT: 16,
+                CTRL: 17,
+                ALT: 18,
+                PAGE_UP: 33,
+                PAGE_DOWN: 34,
+                HOME: 36,
+                END: 35,
+                BACKSPACE: 8,
+                DELETE: 46,
+                COMMAND: 91,
+                MAP: {
+                    91: "COMMAND",
+                    8: "BACKSPACE",
+                    9: "TAB",
+                    13: "ENTER",
+                    16: "SHIFT",
+                    17: "CTRL",
+                    18: "ALT",
+                    19: "PAUSEBREAK",
+                    20: "CAPSLOCK",
+                    27: "ESC",
+                    32: "SPACE",
+                    33: "PAGE_UP",
+                    34: "PAGE_DOWN",
+                    35: "END",
+                    36: "HOME",
+                    37: "LEFT",
+                    38: "UP",
+                    39: "RIGHT",
+                    40: "DOWN",
+                    43: "+",
+                    44: "PRINTSCREEN",
+                    45: "INSERT",
+                    46: "DELETE",
+                    48: "0",
+                    49: "1",
+                    50: "2",
+                    51: "3",
+                    52: "4",
+                    53: "5",
+                    54: "6",
+                    55: "7",
+                    56: "8",
+                    57: "9",
+                    59: ";",
+                    61: "=",
+                    65: "A",
+                    66: "B",
+                    67: "C",
+                    68: "D",
+                    69: "E",
+                    70: "F",
+                    71: "G",
+                    72: "H",
+                    73: "I",
+                    74: "J",
+                    75: "K",
+                    76: "L",
+                    77: "M",
+                    78: "N",
+                    79: "O",
+                    80: "P",
+                    81: "Q",
+                    82: "R",
+                    83: "S",
+                    84: "T",
+                    85: "U",
+                    86: "V",
+                    87: "W",
+                    88: "X",
+                    89: "Y",
+                    90: "Z",
+                    96: "0",
+                    97: "1",
+                    98: "2",
+                    99: "3",
+                    100: "4",
+                    101: "5",
+                    102: "6",
+                    103: "7",
+                    104: "8",
+                    105: "9",
+                    106: "*",
+                    107: "+",
+                    109: "-",
+                    110: ".",
+                    111: "/",
+                    112: "F1",
+                    113: "F2",
+                    114: "F3",
+                    115: "F4",
+                    116: "F5",
+                    117: "F6",
+                    118: "F7",
+                    119: "F8",
+                    120: "F9",
+                    121: "F10",
+                    122: "F11",
+                    123: "F12",
+                    144: "NUMLOCK",
+                    145: "SCROLLLOCK",
+                    186: ";",
+                    187: "=",
+                    188: ",",
+                    189: "-",
+                    190: ".",
+                    191: "/",
+                    192: "`",
+                    219: "[",
+                    220: "\\",
+                    221: "]",
+                    222: "'"
+                },
+
+                isControl: function (e) {
+                    var k = e.which;
+                    switch (k) {
+                        case ctrl.KEY.COMMAND:
+                        case ctrl.KEY.SHIFT:
+                        case ctrl.KEY.CTRL:
+                        case ctrl.KEY.ALT:
+                            return true;
+                    }
+
+                    if (e.metaKey) {
+                        return true;
+                    }
+
+                    return false;
+                },
+                isFunctionKey: function (k) {
+                    k = k.which ? k.which : k;
+                    return k >= 112 && k <= 123;
+                },
+                isVerticalMovement: function (k) {
+                    return ~[ctrl.KEY.UP, ctrl.KEY.DOWN].indexOf(k);
+                },
+                isHorizontalMovement: function (k) {
+                    return ~[ctrl.KEY.LEFT, ctrl.KEY.RIGHT, ctrl.KEY.BACKSPACE, ctrl.KEY.DELETE].indexOf(k);
+                }
+            };
 
             /**
              * Returns true if the selection is empty
@@ -82,6 +233,7 @@ uis.controller('uiSelectCtrl',
             /**
              * Activates the control.
              * When the user clicks on ui-select, displays the dropdown list
+             * Also called following keyboard input to the search box
              */
             ctrl.activate = function (initSearchValue, avoidReset) {
                 if (!ctrl.disabled && !ctrl.open) {
@@ -106,22 +258,15 @@ uis.controller('uiSelectCtrl',
                         });
                     };
 
-                    var result = ctrl.onDropdownCallback($scope, {open: true});
-                    if (angular.isDefined(result)) {
-                        if (angular.isFunction(result.then)) {
-                            // Promise returned - wait for it to complete before completing the selection
-                            result.then(function (result) {
-                                if (!result) {
-                                    return;
-                                }
+                    var result = ctrl.beforeDropdownOpen();
+                    if (angular.isFunction(result.then)) {
+                        // Promise returned - wait for it to complete before completing the selection
+                        result.then(function (result) {
+                            if (result === true) {
                                 completeCallback();
-                            });
-                        } else if (result === true) {
-                            completeCallback();
-                        } else if (result) {
-                            completeCallback();
-                        }
-                    } else {
+                            }
+                        });
+                    } else if (result === true) {
                         completeCallback();
                     }
                 }
@@ -231,9 +376,10 @@ uis.controller('uiSelectCtrl',
                 var isActive = itemIndex === -1 ? false : itemIndex === ctrl.activeIndex;
 
                 // If this is active, and we've defined a callback, do it!
-                if (isActive && !angular.isUndefined(ctrl.onHighlightCallback)) {
-                    itemScope.$eval(ctrl.onHighlightCallback);
-                }
+                // TODO: Needed?
+//                if (isActive && !angular.isUndefined(ctrl.onHighlightCallback)) {
+//                    itemScope.$eval(ctrl.onHighlightCallback);
+//                }
 
                 return isActive;
             };
@@ -278,22 +424,11 @@ uis.controller('uiSelectCtrl',
                     return;
                 }
 
-                // Create the data used to pass to the callbacks
-                var locals = {};
-                locals[ctrl.parserResult.itemName] = item;
-                var callbackContext = {
-                    $item: item,
-                    $model: ctrl.parserResult.modelMapper($scope, locals)
-                };
-
-                // Local method called when we complete the select
-                // eg. called after the onselect callback
-                var completeCallback = function (item) {
-                    callbackContext.$item = item;
+                function completeCallback() {
                     $scope.$broadcast('uis:select', item);
 
                     $timeout(function () {
-                        ctrl.onSelectCallback($scope, callbackContext);
+                        ctrl.afterSelect(item);
                     });
 
                     if (ctrl.closeOnSelect) {
@@ -302,41 +437,31 @@ uis.controller('uiSelectCtrl',
                     if ($event && $event.type === 'click') {
                         ctrl.clickTriggeredSelect = true;
                     }
-                };
-
-                // If there's no onBeforeSelect callback, then just call the completeCallback
-                if(!angular.isDefined(ctrl.onBeforeRemoveCallback)) {
-                    completeCallback(item);
-                    return;
                 }
 
-                // Call the onBeforeSelect callback
+                // Call the beforeSelect method
                 // Allowable responses are -:
-                // falsy: Abort the selection
-                // promise: Wait for response
+                // false: Abort the selection
                 // true: Complete selection
+                // promise: Wait for response
                 // object: Add the returned object
-                var result = ctrl.onBeforeSelectCallback($scope, callbackContext);
-                if (angular.isDefined(result)) {
-                    if (angular.isFunction(result.then)) {
-                        // Promise returned - wait for it to complete before completing the selection
-                        result.then(function (response) {
-                            if (!response) {
-                                return;
-                            }
-                            if (response === true) {
-                                completeCallback(item);
-                            } else if (response) {
-                                completeCallback(response);
-                            }
-                        });
-                    } else if (result === true) {
-                        completeCallback(item);
-                    } else if (result) {
-                        completeCallback(result);
-                    }
-                } else {
+                var result = ctrl.beforeSelect(item);
+                if (angular.isFunction(result.then)) {
+                    // Promise returned - wait for it to complete before completing the selection
+                    result.then(function (response) {
+                        if (!response) {
+                            return;
+                        }
+                        if (response === true) {
+                            completeCallback(item);
+                        } else if (response) {
+                            completeCallback(response);
+                        }
+                    });
+                } else if (result === true) {
                     completeCallback(item);
+                } else if (result) {
+                    completeCallback(result);
                 }
             };
 
@@ -361,22 +486,15 @@ uis.controller('uiSelectCtrl',
                     $scope.$broadcast('uis:close', skipFocusser);
                 }
 
-                var result = ctrl.onDropdownCallback($scope, {open: false});
-                if (angular.isDefined(result)) {
-                    if (angular.isFunction(result.then)) {
-                        // Promise returned - wait for it to complete before completing the selection
-                        result.then(function (result) {
-                            if (!result) {
-                                return;
-                            }
+                var result = ctrl.beforeDropdownClose();
+                if (angular.isFunction(result.then)) {
+                    // Promise returned - wait for it to complete before completing the selection
+                    result.then(function (result) {
+                        if (result === true) {
                             completeCallback();
-                        });
-                    } else if (result === true) {
-                        completeCallback();
-                    } else if (result) {
-                        completeCallback();
-                    }
-                } else {
+                        }
+                    });
+                } else if (result === true) {
                     completeCallback();
                 }
             };
@@ -466,7 +584,7 @@ uis.controller('uiSelectCtrl',
             function _handleDropDownSelection(key) {
                 var processed = true;
                 switch (key) {
-                    case KEY.DOWN:
+                    case ctrl.KEY.DOWN:
                         if (!ctrl.open && ctrl.multiple) {
                             // In case its the search input in 'multiple' mode
                             ctrl.activate(false, true);
@@ -475,7 +593,7 @@ uis.controller('uiSelectCtrl',
                             ctrl.activeIndex++;
                         }
                         break;
-                    case KEY.UP:
+                    case ctrl.KEY.UP:
                         if (!ctrl.open && ctrl.multiple) {
                             ctrl.activate(false, true);
                         } //In case its the search input in 'multiple' mode
@@ -483,21 +601,23 @@ uis.controller('uiSelectCtrl',
                             ctrl.activeIndex--;
                         }
                         break;
-                    case KEY.TAB:
+                    case ctrl.KEY.TAB:
                         if (!ctrl.multiple || ctrl.open) {
                             ctrl.select(ctrl.items[ctrl.activeIndex], true);
                         }
                         break;
-                    case KEY.ENTER:
+                    case ctrl.KEY.ENTER:
                         if (ctrl.open) {
                             // Make sure at least one dropdown item is highlighted before adding
-                            ctrl.select(ctrl.items[ctrl.activeIndex]);
+                            if (ctrl.items[ctrl.activeIndex] !== undefined) {
+                                ctrl.select(ctrl.items[ctrl.activeIndex]);
+                            }
                         } else {
                             // In case its the search input in 'multiple' mode
                             ctrl.activate(false, true);
                         }
                         break;
-                    case KEY.ESC:
+                    case ctrl.KEY.ESC:
                         ctrl.close();
                         break;
                     default:
@@ -508,39 +628,42 @@ uis.controller('uiSelectCtrl',
 
             // Bind to keyboard shortcuts
             ctrl.searchInput.on('keydown', function (e) {
-
                 var key = e.which;
 
-                // if(~[KEY.ESC,KEY.TAB].indexOf(key)){
-                //   //TODO: SEGURO?
-                //   ctrl.close();
-                // }
+                if (~[ctrl.KEY.ESC, ctrl.KEY.TAB].indexOf(key)) {
+                    // TODO: SEGURO?
+                    ctrl.close();
+                }
 
                 $scope.$apply(function () {
                     _handleDropDownSelection(key);
                 });
 
-                if (KEY.isVerticalMovement(key) && ctrl.items.length > 0) {
+                if (ctrl.KEY.isVerticalMovement(key) && ctrl.items.length > 0) {
                     _ensureHighlightVisible();
                 }
 
-                if (key === KEY.ENTER || key === KEY.ESC) {
+                if (key === ctrl.KEY.ENTER || key === ctrl.KEY.ESC) {
                     e.preventDefault();
                     e.stopPropagation();
                 }
+
+                // Let the users process the data
+                // TODO: Is this needed, or just let the user bind to the event themselves!
+//                ctrl.afterKeypress(e);
             });
 
             ctrl.searchInput.on('keyup', function (e) {
                 // return early with these keys
-                if (e.which === KEY.TAB || KEY.isControl(e) || KEY.isFunctionKey(e) || e.which === KEY.ESC ||
-                    KEY.isVerticalMovement(e.which)) {
+                if (e.which === ctrl.KEY.TAB || ctrl.KEY.isControl(e) || ctrl.KEY.isFunctionKey(e) ||
+                    e.which === ctrl.KEY.ESC ||
+                    ctrl.KEY.isVerticalMovement(e.which)) {
                     return;
                 }
 
-                if (ctrl.onKeypressCallback === undefined) {
-                    return;
-                }
-                ctrl.onKeypressCallback($scope, {event: e});
+                // Let the users process the data
+                // TODO: Is this needed, or just let the user bind to the event themselves!
+                ctrl.afterKeypress(e);
             });
 
             // See https://github.com/ivaynberg/select2/blob/3.4.6/select2.js#L1431
@@ -576,5 +699,88 @@ uis.controller('uiSelectCtrl',
             $scope.$on('$destroy', function () {
                 ctrl.searchInput.off('keyup keydown blur paste');
             });
+
+            /**
+             * Keypress callback. Overridable.
+             * @param event the keypress event
+             */
+            /* jshint unused:false */
+            ctrl.afterKeypress = function (event) {
+            };
+
+            /**
+             * Method called before a selection is made. This can be overridden to allow
+             * the selection to be aborted, or a modified version of the selected item to be
+             * returned.
+             *
+             * Allowable responses are -:
+             * false: Abort the selection
+             * true: Complete selection with the selected object
+             * object: Complete the selection with the returned object
+             * promise: Wait for response - response from promise is as above
+             *
+             * @param item the item that has been selected
+             * @returns {*}
+             */
+            ctrl.beforeSelect = function (item) {
+                return true;
+            };
+
+            /**
+             * Method called after a selection is confirmed. This can be overridden to allow
+             * the application to be notified of a newly selected item.
+             * No return is required.
+             *
+             * @param item the item that has been selected
+             */
+            ctrl.afterSelect = function (item) {
+            };
+
+            /**
+             * Method called before an item is removed from the selected list. This can be overridden
+             * to allow the removal to be aborted
+             *
+             * Allowable responses are -:
+             * false: Abort the selection
+             * true: Complete selection with the selected object
+             * object: Complete the selection with the returned object
+             * promise: Wait for response - response from promise is as above
+             *
+             * @param item the item that has been selected
+             * @returns {*}
+             */
+            ctrl.beforeRemove = function (item) {
+                return true;
+            };
+
+            /**
+             * Method called after a item is removed. This can be overridden to allow
+             * the application to be notified of a removed item.
+             * No return is required.
+             *
+             * @param item the item that has been removed
+             */
+            ctrl.afterRemove = function (item) {
+            };
+
+            /**
+             * Method called before the dropdown is opened. This can be overridden to allow
+             * the application to process data before the dropdown is displayed.
+             * The method may return a promise, or true to allow the dropdown, or false to abort.
+             * @returns {boolean}
+             */
+            ctrl.beforeDropdownOpen = function () {
+                return true;
+            };
+
+            /**
+             * Method called before the dropdown is closed. This can be overridden to allow
+             * the application to prevent the dropdown from closing.
+             * The method may return a promise, or true to allow the dropdown to close, or false to abort.
+             * @returns {boolean}
+             */
+            ctrl.beforeDropdownClose = function () {
+                return true;
+            };
 
         }]);

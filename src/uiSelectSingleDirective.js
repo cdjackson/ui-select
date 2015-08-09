@@ -88,7 +88,7 @@ uis.directive('uiSelectSingle', ['$timeout', '$compile', function ($timeout, $co
             });
 
             focusser.bind("keydown", function (e) {
-                if (e.which === KEY.BACKSPACE) {
+                if (e.which === $select.KEY.BACKSPACE) {
                     e.preventDefault();
                     e.stopPropagation();
                     $select.select(undefined);
@@ -96,11 +96,11 @@ uis.directive('uiSelectSingle', ['$timeout', '$compile', function ($timeout, $co
                     return;
                 }
 
-                if (e.which === KEY.TAB || KEY.isControl(e) || KEY.isFunctionKey(e) || e.which === KEY.ESC) {
+                if (e.which === $select.KEY.TAB || $select.KEY.isControl(e) || $select.KEY.isFunctionKey(e) || e.which === $select.KEY.ESC) {
                     return;
                 }
 
-                if (e.which == KEY.DOWN || e.which == KEY.UP || e.which == KEY.ENTER || e.which == KEY.SPACE) {
+                if (e.which == $select.KEY.DOWN || e.which == $select.KEY.UP || e.which == $select.KEY.ENTER || e.which == $select.KEY.SPACE) {
                     e.preventDefault();
                     e.stopPropagation();
                     $select.activate();
@@ -110,8 +110,8 @@ uis.directive('uiSelectSingle', ['$timeout', '$compile', function ($timeout, $co
             });
 
             focusser.bind("keyup input", function (e) {
-                if (e.which === KEY.TAB || KEY.isControl(e) || KEY.isFunctionKey(e) || e.which === KEY.ESC ||
-                    e.which == KEY.ENTER || e.which === KEY.BACKSPACE) {
+                if (e.which === $select.KEY.TAB || $select.KEY.isControl(e) || $select.KEY.isFunctionKey(e) || e.which === $select.KEY.ESC ||
+                    e.which == $select.KEY.ENTER || e.which === $select.KEY.BACKSPACE) {
                     return;
                 }
 

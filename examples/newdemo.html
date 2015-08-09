@@ -41,7 +41,7 @@
 <form class="form-horizontal">
     <fieldset>
         <legend>ui-select inside a Bootstrap form</legend>
-
+<!--
         <div class="form-group">
             <label class="col-sm-3 control-label">Default</label>
 
@@ -150,14 +150,14 @@
                 </ui-select>
             </div>
         </div>
-
+-->
         <div class="form-group">
             <label class="col-sm-3 control-label">Tagging</label>
 
             <div class="col-sm-6">
                 <ui-select multiple ng-model="multipleDemo.colors" theme="bootstrap"
                            ng-disabled="disabled" title="Choose a color"
-                        on-keypress="onKeypress(event)"
+                           ui-select-tagging
                         >
                     <ui-select-match placeholder="Select colors...">{{$item}}</ui-select-match>
                     <ui-select-choices repeat="color in availableColors | filter:$select.search">
@@ -166,14 +166,15 @@
                 </ui-select>
             </div>
         </div>
-
+<!--
         <div class="form-group">
             <label class="col-sm-3 control-label">Combo Box</label>
 
             <div class="col-sm-6">
                 <ui-select ng-model="person.selected" theme="bootstrap"
                            on-keypress="onComboKeypress(event)"
-                           on-before-select="onComboBeforeSelect($item)">
+                           on-before-select="onComboBeforeSelect($item)"
+                        ui-select-manual type="INTEGER">
                     <ui-select-match placeholder="Select or search a person in the list...">{{$select.selected.name}}
                     </ui-select-match>
                     <ui-select-choices repeat="item in people | filter: $select.search">
@@ -183,7 +184,7 @@
                 </ui-select>
             </div>
         </div>
-
+-->
     </fieldset>
 </form>
 

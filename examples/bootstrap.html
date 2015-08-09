@@ -36,7 +36,12 @@
 <body ng-controller="DemoCtrl">
   <script src="demo.js"></script>
 
-  <p>Selected: {{person.selected.name}}</p>
+  <p>Selected:
+      <span ng-repeat="p in [].concat(person.selected)">
+          <span ng-if="!$first">,</span>
+          {{p.name}}
+      </span>
+  </p>
 
   <form class="form-horizontal">
     <fieldset>
