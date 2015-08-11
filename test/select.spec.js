@@ -36,7 +36,7 @@ describe('ui-select tests', function () {
 
     });
 
-    beforeEach(module('ngSanitize', 'ui.select', 'wrapperDirective'));
+    beforeEach(module('ngSanitize', 'ui.select', 'ui.select.tagging', 'wrapperDirective'));
 
     beforeEach(function () {
         module(function ($provide) {
@@ -117,7 +117,7 @@ describe('ui-select tests', function () {
                 attrsHtml += ' tabindex="' + attrs.tabindex + '"';
             }
             if (attrs.tagging !== undefined) {
-                attrsHtml += ' tagging="' + attrs.tagging + '"';
+                attrsHtml += ' ui-select-tagging="' + attrs.tagging + '"';
             }
             if (attrs.taggingTokens !== undefined) {
                 attrsHtml += ' tagging-tokens="' + attrs.taggingTokens + '"';
@@ -179,12 +179,11 @@ describe('ui-select tests', function () {
 
     function triggerPaste(element, text) {
         var e = jQuery.Event("paste");
-        e.originalEvent = {
-            clipboardData: {
-                getData: function () {
-                    return text;
-                }
+        e.clipboardData = {
+            getData: function () {
+                return text;
             }
+
         };
         element.trigger(e);
     }
@@ -1208,11 +1207,11 @@ describe('ui-select tests', function () {
         el.find('.ui-select-match-item').first().find('.ui-select-match-close').click();
         $timeout.flush();
 
-        expect(scope.$item).toBe(scope.people[5]);
-        expect(scope.selection.selected).toBe('Samantha');
+        expect(scope.$item.name).toBe(scope.people[5].name);
+        expect(scope.selection.selected[0]).toBe(scope.people[3].name);
     });
 
-    it('should set $item & $model correctly when invoking callback on remove and no single prop. binding', function () {
+    it('should set $item correctly when invoking callback on remove and no single prop. binding', function () {
         var el = compileTemplate(
             '<ui-select multiple ng-model="selection.selected"> \
               <ui-select-match placeholder="Pick one...">{{$select.selected.name}}</ui-select-match> \
@@ -1234,12 +1233,11 @@ describe('ui-select tests', function () {
         el.find('.ui-select-match-item').first().find('.ui-select-match-close').click();
         $timeout.flush();
 
-        expect(scope.$item).toBe(scope.people[5]);
-        expect(scope.selection.selected).toBe(scope.$item);
+        expect(scope.$item.name).toBe(scope.people[5].name);
+        expect(scope.selection.selected[0].name).toBe(scope.people[3].name);
     });
 
     it('should append/transclude content (with correct scope) that users add at <match> tag', function () {
-
         var el = compileTemplate(
             '<ui-select ng-model="selection.selected"> \
               <ui-select-match> \
@@ -1328,7 +1326,6 @@ describe('ui-select tests', function () {
         }
 
         describe('selectize theme', function () {
-
             it('should show search input when true', function () {
                 setupSelectComponent(true, 'selectize');
                 expect($(el).find('.ui-select-search')).not.toHaveClass('ng-hide');
@@ -1342,7 +1339,6 @@ describe('ui-select tests', function () {
         });
 
         describe('select2 theme', function () {
-
             it('should show search input when true', function () {
                 setupSelectComponent('true', 'select2');
                 expect($(el).find('.select2-search')).not.toHaveClass('ng-hide');
@@ -1356,7 +1352,6 @@ describe('ui-select tests', function () {
         });
 
         describe('bootstrap theme', function () {
-
             it('should show search input when true', function () {
                 setupSelectComponent('true', 'bootstrap');
                 clickMatch(el);
@@ -1375,7 +1370,6 @@ describe('ui-select tests', function () {
 
 
     describe('multi selection', function () {
-
         function createUiSelectMultiple(attrs) {
             var attrsHtml = '';
             if (attrs !== undefined) {
@@ -1392,7 +1386,7 @@ describe('ui-select tests', function () {
                     attrsHtml += ' close-on-select="' + attrs.closeOnSelect + '"';
                 }
                 if (attrs.tagging !== undefined) {
-                    attrsHtml += ' tagging="' + attrs.tagging + '"';
+                    attrsHtml += ' ui-select-tagging="' + attrs.tagging + '"';
                 }
                 if (attrs.taggingTokens !== undefined) {
                     attrsHtml += ' tagging-tokens="' + attrs.taggingTokens + '"';
@@ -1418,7 +1412,6 @@ describe('ui-select tests', function () {
         });
 
         it('should set model as an empty array if ngModel isnt defined after an item is selected', function () {
-
             // scope.selection.selectedMultiple = [];
             var el = createUiSelectMultiple();
             expect(scope.selection.selectedMultiple instanceof Array).toBe(false);
@@ -1950,12 +1943,12 @@ describe('ui-select tests', function () {
         });
 
         it('should allow paste tag from clipboard', function () {
-            var el = createUiSelectMultiple({taggingTokens: ",|ENTER"});
+            var el = createUiSelectMultiple({tagging: true, taggingTokens: ",|ENTER"});
 
             el.scope().$select.beforeTagging = function (item) {
                 return {
-                    name: name,
-                    email: name + '@email.com',
+                    name: item,
+                    email: item + '@email.com',
                     group: 'Foo',
                     age: 12
                 };
@@ -1968,12 +1961,12 @@ describe('ui-select tests', function () {
         });
 
         it('should allow paste multiple tags', function () {
-            var el = createUiSelectMultiple({taggingTokens: ",|ENTER"});
+            var el = createUiSelectMultiple({tagging: true, taggingTokens: ",|ENTER"});
 
             el.scope().$select.beforeTagging = function (item) {
                 return {
-                    name: name,
-                    email: name + '@email.com',
+                    name: item,
+                    email: item + '@email.com',
                     group: 'Foo',
                     age: 12
                 };
@@ -1981,7 +1974,7 @@ describe('ui-select tests', function () {
             clickMatch(el);
             triggerPaste(el.find('input'), ',tag1,tag2,tag3,,tag5,');
 
-            expect($(el).scope().$select.selected.length).toBe(5);
+            expect($(el).scope().$select.selected.length).toBe(4);
         });
     });
 

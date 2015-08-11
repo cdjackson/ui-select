@@ -1,7 +1,7 @@
 /*!
  * ui-select
  * http://github.com/angular-ui/ui-select
- * Version: 0.12.1 - 2015-08-09T18:09:19.177Z
+ * Version: 0.12.1 - 2015-08-11T18:41:59.476Z
  * License: MIT
  */
 
@@ -570,7 +570,7 @@ uis.controller('uiSelectCtrl',
                 var isActive = itemIndex === -1 ? false : itemIndex === ctrl.activeIndex;
 
                 // If this is active, and we've defined a callback, do it!
-                // TODO: Needed?
+                // TODO: Is this needed? If it is, then implement properly.
 //                if (isActive && !angular.isUndefined(ctrl.onHighlightCallback)) {
 //                    itemScope.$eval(ctrl.onHighlightCallback);
 //                }
@@ -594,8 +594,10 @@ uis.controller('uiSelectCtrl',
 
                 if (itemIndex >= 0 && !angular.isUndefined(ctrl.disableChoiceExpression)) {
                     item = ctrl.items[itemIndex];
-                    isDisabled = !!(itemScope.$eval(ctrl.disableChoiceExpression)); // force the boolean value
-                    item._uiSelectChoiceDisabled = isDisabled; // store this for later reference
+                    // Force the boolean value
+                    isDisabled = !!(itemScope.$eval(ctrl.disableChoiceExpression));
+                    // Store this for later reference
+                    item._uiSelectChoiceDisabled = isDisabled;
                 }
 
                 return isDisabled;
@@ -841,10 +843,6 @@ uis.controller('uiSelectCtrl',
                     e.preventDefault();
                     e.stopPropagation();
                 }
-
-                // Let the users process the data
-                // TODO: Is this needed, or just let the user bind to the event themselves!
-//                ctrl.afterKeypress(e);
             });
 
             ctrl.searchInput.on('keyup', function (e) {

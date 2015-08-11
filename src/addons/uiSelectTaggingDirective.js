@@ -13,9 +13,13 @@ angular.module('ui.select.tagging', ['ui.select'])
                 ctrl.searchInput.on('paste', function (e) {
                     var data = e.clipboardData.getData('text/plain');
                     if (data && data.length > 0) {
-                        var items = data.split(ctrl.taggingTokens[0]); // Split by first token only
+                        // Split by first token only
+                        var items = data.split(ctrl.taggingTokens[0]);
                         if (items && items.length > 0) {
                             angular.forEach(items, function (item) {
+                                if(item === null || item.length === 0) {
+                                    return;
+                                }
                                 var newItem = ctrl.beforeTagging(item);
                                 if (newItem) {
                                     ctrl.select(newItem, true);
@@ -53,27 +57,21 @@ angular.module('ui.select.tagging', ['ui.select'])
                         }
 
                         // Check for end of tagging
-                        var tagged = false;
-//                        if (e.which === ctrl.KEY.ENTER) {
-//                            tagged = true;
-//                        }
                         for (var i = 0; i < ctrl.taggingTokens.length; i++) {
                             if (ctrl.taggingTokens[i] === ctrl.KEY.MAP[e.keyCode]) {
                                 // Make sure there is a new value to push via tagging
                                 if (ctrl.search.length > 0) {
-                                    tagged = true;
+                                    // Make sure that we don't leave the tagging character on the end of the item label
                                     if ($select.search.substr($select.search.length - 1) == ctrl.KEY.MAP[e.keyCode]) {
+                                        $select.search = $select.search.substr(0, $select.search.length - 1);
+                                    }
 
-                                    $select.search = $select.search.substr(0, $select.search.length - 1);
-                                }
+                                    // Select this item and return
+                                    ctrl.select(ctrl.beforeTagging($select.search));
+                                    return;
                                 }
                             }
                         }
-                        if (tagged === true) {
-                            ctrl.select(ctrl.beforeTagging($select.search));
-                            return;
-                        }
-
 
                         $select.activeIndex = $select.taggingLabel === false ? -1 : 0;
                         // If taggingLabel === false bypasses all of this
@@ -130,7 +128,7 @@ angular.module('ui.select.tagging', ['ui.select'])
                             }
                             return;
                         }
-//                        }
+
                         if (hasTag) {
                             dupeIndex = _findApproxDupe($select.selected, newItem);
                         }
@@ -154,14 +152,12 @@ angular.module('ui.select.tagging', ['ui.select'])
                     if (arr === undefined || $select.search === undefined) {
                         return false;
                     }
-                    var hasDupe = arr.filter(function (origItem) {
+                    return arr.filter(function (origItem) {
                             if ($select.search.toUpperCase() === undefined || origItem === undefined) {
                                 return false;
                             }
                             return origItem.toUpperCase() === $select.search.toUpperCase();
                         }).length > 0;
-
-                    return hasDupe;
                 }
 
                 function _findApproxDupe(haystack, needle) {

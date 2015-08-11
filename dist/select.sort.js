@@ -1,7 +1,7 @@
 /*!
  * ui-select
  * http://github.com/angular-ui/ui-select
- * Version: 0.12.1 - 2015-08-09T18:09:19.204Z
+ * Version: 0.12.1 - 2015-08-11T18:41:59.488Z
  * License: MIT
  */
 
@@ -150,7 +150,8 @@ angular.module('ui.select.sort', ['ui.select'])
         };
     }]);
 
-}());ted))) {
+}());d
+                        if (_findCaseInsensitiveDupe(stashArr.concat($select.selected))) {
                             // if there is a tag from prev iteration, strip it / queue the change
                             // and return early
                             if (hasTag) {
@@ -169,7 +170,7 @@ angular.module('ui.select.sort', ['ui.select'])
                             }
                             return;
                         }
-//                        }
+
                         if (hasTag) {
                             dupeIndex = _findApproxDupe($select.selected, newItem);
                         }
@@ -193,14 +194,12 @@ angular.module('ui.select.sort', ['ui.select'])
                     if (arr === undefined || $select.search === undefined) {
                         return false;
                     }
-                    var hasDupe = arr.filter(function (origItem) {
+                    return arr.filter(function (origItem) {
                             if ($select.search.toUpperCase() === undefined || origItem === undefined) {
                                 return false;
                             }
                             return origItem.toUpperCase() === $select.search.toUpperCase();
                         }).length > 0;
-
-                    return hasDupe;
                 }
 
                 function _findApproxDupe(haystack, needle) {
